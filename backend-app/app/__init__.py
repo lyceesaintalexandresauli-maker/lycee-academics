@@ -218,4 +218,10 @@ def create_app(config_class=Config):
             raise
         echo(f"Recorded {len(absentees)} new absence(s).")
 
+    # Start the daily welfare report scheduler (delivers to Admin before the
+    # configured deadline, default 8:00 AM). Disabled under TESTING.
+    if not app.config.get("TESTING"):
+        from app.services.welfare_report_scheduler import start_scheduler
+        start_scheduler(app)
+
     return app

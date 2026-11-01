@@ -15,3 +15,7 @@ def app():
         db.create_all()
         yield app
         db.drop_all()
+
+@pytest.fixture
+def client(app):
+    return app.test_client()
