@@ -27,6 +27,7 @@ from .correspondence import Correspondence
 from .activity import ActivityLog
 from .academic_structure import School, Department, Trade, SchoolClass, AcademicYear, AcademicTerm
 from .enrollment import AcademicEnrollment
+from .welfare import StudentWelfareRecord, DailyWelfareReport, WelfareAuditEvent
 
 __all__ = [
     "School", "Department", "Trade", "SchoolClass", "AcademicYear", "AcademicTerm",
@@ -44,5 +45,6 @@ __all__ = [
     "Meeting", "MeetingParticipant", "MeetingAttendance", "MeetingAgendaItem",
     "MeetingMinutes", "MeetingMinutesRevision", "MeetingActionItem",
     "MeetingActionComment", "MeetingAuditEvent", "MeetingNotificationLog",
-    "RoomReservation", "Announcement", "Correspondence", "ActivityLog"
+    "RoomReservation", "Announcement", "Correspondence", "ActivityLog",
+    "StudentWelfareRecord", "DailyWelfareReport", "WelfareAuditEvent",
 ]

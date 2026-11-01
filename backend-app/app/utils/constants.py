@@ -69,11 +69,13 @@ ROLE_ACCESS = {
     "export_report_card": {"master_admin", "teacher", "secretary", "parent", "student"},
     "timetable": {"master_admin", "teacher", "librarian", "accountant", "discipline", "patron", "matron", "secretary", "parent", "student"},
     "academic_management": {"master_admin", "head_teacher", "teacher"},
+    "school_structure": {"master_admin", "head_teacher", "teacher"},
     "day_schedule": {"master_admin", "teacher", "accountant", "librarian", "discipline", "patron", "matron", "secretary", "parent", "student", "auditor"},
     "fees": {"master_admin", "accountant", "parent", "student", "secretary"},
     "library": {"master_admin", "librarian", "teacher", "student", "parent"},
     "discipline": {"master_admin", "teacher", "discipline", "patron", "matron", "secretary", "parent", "student"},
     "behavior": {"master_admin", "head_teacher", "teacher", "discipline", "patron", "matron", "parent", "student"},
+    "welfare": {"master_admin", "head_teacher", "patron", "matron"},
     "messages": {"master_admin", "head_teacher", "teacher", "accountant", "librarian", "discipline", "patron", "matron", "secretary", "parent", "student", "auditor"},
     "notifications": {"master_admin", "head_teacher", "teacher", "accountant", "librarian", "discipline", "patron", "matron", "secretary", "parent", "student", "auditor"},
     "assessments": {"master_admin", "teacher", "student", "parent"},
@@ -96,7 +98,7 @@ ROLE_ACCESS = {
 for _endpoint in (
     "dashboard", "students", "card_lookup", "report_lost_card", "admissions", "documents", "parent_contacts", "appointments", "meetings", "meeting_api", "meeting_admin", "meeting_settings", "announcements", "correspondence", "letters_certificates", "reports", "activity_history", "attendance", "attendance_times",
     "export_attendance", "grades", "report_card", "export_report_card", "timetable",
-    "day_schedule", "discipline", "behavior", "assessments", "create_rubric", "grade_assessment",
+    "day_schedule", "discipline", "behavior", "welfare", "assessments", "create_rubric", "grade_assessment",
     "learning_materials", "learning_material_file", "assessment_file",
     "assessment_submission_file", "student_profile", "student_photo",
 ):
@@ -106,36 +108,76 @@ DEFAULT_MORNING_START = "06:30"
 DEFAULT_LATE_AFTER = "08:00"
 DEFAULT_AFTERNOON_START = "16:00"
 DEFAULT_AFTERNOON_END = "16:30"
-TRADES = ["ICT and Multimedia", "Fashion Design", "Professional Accountant"]
-GENERAL_LEVELS = ["L3", "L4", "L5"]
-ACCOUNTING_LEVELS = ["S4", "S5", "S6"]
-PROGRAM_LEVELS = {
-    "ICT and Multimedia": GENERAL_LEVELS,
-    "Fashion Design": GENERAL_LEVELS,
-    "Professional Accountant": ACCOUNTING_LEVELS,
-}
-CLASS_GROUPS = {
+SCHOOL_STRUCTURE = {
     "ICT and Multimedia": {
-        "L3": ["L3 Software Development", "L3 Networking and Internet Technology", "L3 Computer System and Architecture"],
-        "L4": ["L4 Software Development A", "L4 Software Development B", "L4 Networking and Internet Technology A", "L4 Networking and Internet Technology B", "L4 Computer System and Architecture"],
-        "L5": ["L5 Software Development", "L5 Networking and Internet Technology", "L5 Computer System and Architecture"],
+        "Software Development": {
+            "L3": ["L3 Software Development"],
+            "L4": ["L4 Software Development A", "L4 Software Development B"],
+            "L5": ["L5 Software Development"],
+        },
+        "Networking and Internet Technology": {
+            "L3": ["L3 Networking and Internet Technology"],
+            "L4": ["L4 Networking and Internet Technology A", "L4 Networking and Internet Technology B"],
+            "L5": ["L5 Networking and Internet Technology"],
+        },
+        "Computer System and Architecture": {
+            "L3": ["L3 Computer System and Architecture"],
+            "L4": ["L4 Computer System and Architecture"],
+            "L5": ["L5 Computer System and Architecture"],
+        },
     },
-    "Fashion Design": {
-        "L3": ["L3 Fashion Design"],
-        "L4": ["L4 Fashion Design"],
-        "L5": ["L5 Fashion Design"],
+    "Fashion and Design": {
+        "Fashion and Design": {
+            "L3": ["L3 Fashion and Design"],
+            "L4": ["L4 Fashion and Design"],
+            "L5": ["L5 Fashion and Design"],
+        },
     },
     "Professional Accountant": {
-        "S4": ["S4 Professional Accountant", "S4 Professional Accountant A"],
-        "S5": ["S5 Professional Accountant A", "S5 Professional Accountant B"],
-        "S6": ["S6 Professional Accountant"],
+        "Professional Accountant": {
+            "S4": ["S4 Accountant A", "S4 Accountant B"],
+            "S5": ["S5 Accountant"],
+            "S6": ["S6 Accountant"],
+        },
     },
+}
+DEPARTMENTS = list(SCHOOL_STRUCTURE)
+TRADE_DEPARTMENT = {
+    trade: department
+    for department, trade_map in SCHOOL_STRUCTURE.items()
+    for trade in trade_map
+}
+TRADES = list(TRADE_DEPARTMENT)
+PROGRAM_LEVELS = {
+    trade: list(levels)
+    for trade_map in SCHOOL_STRUCTURE.values()
+    for trade, levels in trade_map.items()
+}
+CLASS_GROUPS = {
+    trade: {level: list(class_names) for level, class_names in levels.items()}
+    for trade_map in SCHOOL_STRUCTURE.values()
+    for trade, levels in trade_map.items()
 }
 CLASS_TRADE_LEVEL = {
     class_name: (trade, level)
-    for trade, levels in CLASS_GROUPS.items()
+    for trade_map in SCHOOL_STRUCTURE.values()
+    for trade, levels in trade_map.items()
     for level, class_names in levels.items()
     for class_name in class_names
 }
+CLASS_DEPARTMENT = {
+    class_name: department
+    for department, trade_map in SCHOOL_STRUCTURE.items()
+    for levels in trade_map.values()
+    for class_names in levels.values()
+    for class_name in class_names
+}
 CLASS_NAMES = list(CLASS_TRADE_LEVEL)
+LEGACY_CLASS_ALIASES = {
+    "L3 Fashion Design": "L3 Fashion and Design",
+    "L4 Fashion Design": "L4 Fashion and Design",
+    "L5 Fashion Design": "L5 Fashion and Design",
+    "S4 Professional Accountant A": "S4 Accountant A",
+    "S6 Professional Accountant": "S6 Accountant",
+}
 ALLOWED_LOGO_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
