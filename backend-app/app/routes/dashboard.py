@@ -1,4 +1,5 @@
 import os
+import calendar
 import datetime
 import json
 from flask import request, redirect, url_for, flash, jsonify, abort, send_file, current_app
@@ -7,7 +8,7 @@ from werkzeug.utils import secure_filename
 from openpyxl import Workbook
 from markupsafe import escape
 from app.extensions import db
-from app.models import User, Attendance, PendingCard, FeeTransaction, FeeRequirement, Book, BookLoan, DisciplineCase, SchoolMessage, Grade, TimetableEntry, DayScheduleEntry, Setting, Assessment, AssessmentSubmission, AdmissionApplicant, Appointment, UserNotification, ActivityLog
+from app.models import User, Attendance, PendingCard, FeeTransaction, FeeRequirement, Book, BookLoan, DisciplineCase, SchoolMessage, Grade, TimetableEntry, DayScheduleEntry, Setting, Assessment, AssessmentSubmission, AdmissionApplicant, Appointment, UserNotification, ActivityLog, Meeting
 from app.utils.constants import *
 from app.utils.decorators import role_required
 from app.utils.helpers import get_setting, set_setting, attendance_for_student
@@ -15,6 +16,90 @@ from app.utils.rendering import page
 
 from app.utils.helpers import guardian_can_access_student, linked_children
 from app.utils.decorators import permission_for
+
+
+def _admin_ring_svg(percent, color):
+    pct = max(0, min(100, int(percent or 0)))
+    return (
+        f"<svg class='admin-ring' viewBox='0 0 36 36' aria-hidden='true'>"
+        f"<path class='admin-ring-bg' d='M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831'/>"
+        f"<path class='admin-ring-fg' stroke='{color}' stroke-dasharray='{pct}, 100' "
+        f"d='M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831'/>"
+        f"<text x='18' y='21' text-anchor='middle' class='admin-ring-text'>{pct}%</text></svg>"
+    )
+
+
+def _admin_month_calendar(today, event_days):
+    weeks = calendar.monthcalendar(today.year, today.month)
+    weekday_labels = "".join(f"<span>{label}</span>" for label in ("Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"))
+    cells = []
+    for week in weeks:
+        for day in week:
+            if day == 0:
+                cells.append("<span class='admin-cal-day is-empty'></span>")
+                continue
+            classes = ["admin-cal-day"]
+            if day == today.day:
+                classes.append("is-today")
+            if day in event_days:
+                classes.append("has-event")
+            cells.append(f"<span class='{' '.join(classes)}'>{day}</span>")
+    return (
+        f"<div class='admin-cal-weekdays'>{weekday_labels}</div>"
+        f"<div class='admin-cal-grid'>{''.join(cells)}</div>"
+    )
+
+
+def _admin_pair_lists(rows, blank="Not specified", limit=8):
+    labels = [(label or blank) for label, _count in rows[:limit]]
+    values = [int(count) for _label, count in rows[:limit]]
+    return labels, values
+
+
+def _admin_rate_bars(items, accent="#2563eb"):
+    if not items:
+        return "<p class='admin-empty mb-0'>No records available yet.</p>"
+    maximum = max((percent for _label, percent in items), default=1) or 1
+    rows = []
+    for label, percent in items:
+        width = max(4, round(percent / maximum * 100)) if maximum else 0
+        rows.append(
+            f"<div class='admin-rate-row'><div class='admin-rate-label'>{escape(label)}</div>"
+            f"<div class='admin-rate-track'><span style='width:{width}%;background:{accent}'></span></div>"
+            f"<strong>{percent:.1f}%</strong></div>"
+        )
+    return "".join(rows)
+
+
+def _admin_age_buckets(today):
+    buckets = [("Under 15", 0), ("15-17", 0), ("18-20", 0), ("21+", 0)]
+    counts = {label: 0 for label, _ in buckets}
+    unknown = 0
+    students = User.query.filter_by(role="student").with_entities(User.date_of_birth).all()
+    for (dob,) in students:
+        if not dob:
+            unknown += 1
+            continue
+        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        if age < 15:
+            counts["Under 15"] += 1
+        elif age <= 17:
+            counts["15-17"] += 1
+        elif age <= 20:
+            counts["18-20"] += 1
+        else:
+            counts["21+"] += 1
+    labels = [label for label, _ in buckets]
+    values = [counts[label] for label in labels]
+    if unknown:
+        labels.append("Unknown")
+        values.append(unknown)
+    ages = [
+        today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        for (dob,) in students if dob
+    ]
+    avg_age = round(sum(ages) / len(ages), 1) if ages else 0
+    return labels, values, avg_age
 
 
 def _office_activity_svg(labels, attendance, student_activity):
@@ -51,30 +136,336 @@ def _office_activity_svg(labels, attendance, student_activity):
 def dashboard():
     role = current_user.role
     if role == "master_admin":
-        today = datetime.date.today(); today_iso = today.isoformat()
+        today = datetime.date.today()
+        today_iso = today.isoformat()
+        month_start = today.replace(day=1)
+        month_end = (month_start.replace(month=12, day=31) if today.month == 12
+                     else month_start.replace(month=today.month + 1, day=1) - datetime.timedelta(days=1))
         total_students = User.query.filter_by(role="student").count()
         total_teachers = User.query.filter_by(role="teacher").count()
         total_accounts = User.query.count()
         today_attendance = Attendance.query.filter_by(day=today_iso).count()
         pending_cards = PendingCard.query.filter_by(state="Pending").count()
-        recent_attendance = Attendance.query.order_by(Attendance.id.desc()).limit(7).all()
-        recent_rows = "".join(f"<tr><td><strong>{a.student.full_name if a.student else 'Unknown student'}</strong></td><td>{a.day}</td><td><span class='pill'>{a.status}</span></td><td>{a.arrival_time or '-'}</td></tr>" for a in recent_attendance)
-        labels=[]; attendance_series=[]
-        for i in range(6,-1,-1):
-            d=today-datetime.timedelta(days=i); labels.append(d.strftime("%d %b")); attendance_series.append(Attendance.query.filter_by(day=d.isoformat()).count())
-        trade_rows = db.session.query(User.trade, db.func.count(User.id)).filter(User.role=="student").group_by(User.trade).all()
-        trade_labels=[r[0] or "Not specified" for r in trade_rows]; trade_values=[int(r[1]) for r in trade_rows]
-        timeline_items = "".join(f"<div class='timeline-item'><span class='timeline-dot'></span><strong>{a.student.full_name if a.student else 'Unknown student'} — {a.status}</strong><small>{a.day} {a.arrival_time or ''}</small></div>" for a in recent_attendance[:5])
+        present_today = Attendance.query.filter_by(day=today_iso, status="Present").count()
+        absent_today = Attendance.query.filter_by(day=today_iso, status="Absent").count()
+        late_today = Attendance.query.filter_by(day=today_iso, status="Late").count()
+        present_like = present_today + late_today
+        active_pct = round(present_like / total_students * 100) if total_students else 0
+        inactive_pct = round(absent_today / total_students * 100) if total_students else 0
+        staff_count = User.query.filter(User.role.notin_(("student", "parent"))).count()
+        teacher_pct = round(total_teachers / staff_count * 100) if staff_count else 0
+
+        total_admissions = AdmissionApplicant.query.count()
+        pending_admissions = AdmissionApplicant.query.filter(
+            AdmissionApplicant.status.in_({"Submitted", "Under Review"})
+        ).count()
+        admissions_ring = round(pending_admissions / total_admissions * 100) if total_admissions else 0
+
+        schedule_month = DayScheduleEntry.query.filter(
+            DayScheduleEntry.schedule_date >= month_start,
+            DayScheduleEntry.schedule_date <= month_end,
+            DayScheduleEntry.is_published.is_(True),
+        ).all()
+        meetings_month = Meeting.query.filter(
+            Meeting.scheduled_date >= month_start.isoformat(),
+            Meeting.scheduled_date <= month_end.isoformat(),
+            Meeting.status.in_({"Scheduled", "Rescheduled", "In Progress"}),
+        ).all()
+        event_days = {entry.schedule_date.day for entry in schedule_month}
+        for meeting in meetings_month:
+            try:
+                event_days.add(datetime.date.fromisoformat(meeting.scheduled_date).day)
+            except ValueError:
+                pass
+        upcoming_events = DayScheduleEntry.query.filter(
+            DayScheduleEntry.schedule_date >= today,
+            DayScheduleEntry.is_published.is_(True),
+        ).count() + Meeting.query.filter(
+            Meeting.scheduled_date >= today_iso,
+            Meeting.status.in_({"Scheduled", "Rescheduled", "In Progress"}),
+        ).count()
+        events_ring = min(100, round(len(event_days) / max(1, month_end.day) * 100))
+
+        finance_labels = []
+        finance_income = []
+        week_income_total = 0.0
+        for days_ago in range(6, -1, -1):
+            day = today - datetime.timedelta(days=days_ago)
+            day_sum = db.session.query(db.func.coalesce(db.func.sum(FeeTransaction.amount), 0)).filter(
+                FeeTransaction.created_at.like(f"{day.isoformat()}%")
+            ).scalar()
+            amount = float(day_sum or 0)
+            finance_labels.append(day.strftime("%a").upper())
+            finance_income.append(amount)
+            week_income_total += amount
+
+        recent_students = User.query.filter_by(role="student").order_by(User.id.desc()).limit(5).all()
+        recent_students_html = "".join(
+            f"<li><span class='admin-avatar' aria-hidden='true'>{escape((student.full_name or '?')[:1].upper())}</span>"
+            f"<div><strong>{escape(student.full_name)}</strong>"
+            f"<small>{escape(student.class_name or 'Unassigned class')}</small></div></li>"
+            for student in recent_students
+        ) or "<li class='admin-empty'>No students registered yet.</li>"
+        calendar_html = _admin_month_calendar(today, event_days)
+        events_ring_svg = _admin_ring_svg(events_ring, "#ff4c61")
+        admissions_ring_svg = _admin_ring_svg(admissions_ring, "#8b5cf6")
+        month_label = today.strftime("%B %Y")
+
         body = """
-<div class="dashboard-heading"><div><span class="pill">SCHOOL OVERVIEW</span><h1 class="mt-2">Welcome back, <span class="accent">{{ current_user.full_name }}</span></h1><p>Live overview based only on records currently stored in the school database.</p></div><a class="btn btn-accent" href="/admin"><i class="bi bi-gear me-1"></i> Admin Center</a></div>
-<section class="panel hero-card"><div class="row align-items-center g-4"><div class="col-lg-8"><div class="small text-uppercase fw-bold opacity-75">Lycée de Muhura</div><h2 class="display-6 fw-bold mt-2 mb-2">School Management Dashboard</h2><p class="muted mb-0">Attendance, students, academics, finance, library, discipline and communication in one place.</p></div><div class="col-lg-4 text-lg-end"><div class="small opacity-75">System accounts</div><div class="display-5 fw-bold">{{ total_accounts }}</div></div></div></section>
-<section class="grid mb-4"><a class="stat text-decoration-none" href="/students"><div class="stat-top"><span class="stat-icon"><i class="bi bi-people"></i></span><i class="bi bi-arrow-up-right muted"></i></div><div class="stat-value">{{ total_students }}</div><div class="stat-label">Total Students</div><div class="stat-note">Registered in database</div></a><div class="stat"><div class="stat-top"><span class="stat-icon"><i class="bi bi-person-badge"></i></span></div><div class="stat-value">{{ total_teachers }}</div><div class="stat-label">Teachers</div><div class="stat-note">Teacher accounts</div></div><a class="stat text-decoration-none" href="/attendance"><div class="stat-top"><span class="stat-icon"><i class="bi bi-calendar-check"></i></span><i class="bi bi-arrow-up-right muted"></i></div><div class="stat-value">{{ today_attendance }}</div><div class="stat-label">Attendance Records Today</div><div class="stat-note">Saved for {{ today_iso }}</div></a><div class="stat"><div class="stat-top"><span class="stat-icon"><i class="bi bi-credit-card-2-front"></i></span></div><div class="stat-value">{{ pending_cards }}</div><div class="stat-label">Pending RFID Cards</div><div class="stat-note">Waiting for registration</div></div></section>
-<div class="row g-4"><div class="col-xl-8"><section class="panel chart-card"><div class="dashboard-heading mb-2"><div><h2>Attendance Trend</h2><p>Actual attendance records saved during the last 7 calendar days.</p></div><span class="pill">LIVE DATA</span></div><div class="chart-wrap"><canvas id="attendanceChart"></canvas></div></section></div><div class="col-xl-4"><section class="panel chart-card"><div class="dashboard-heading mb-2"><div><h2>Students by Trade</h2><p>Only trades currently present in the database.</p></div></div><div class="chart-wrap"><canvas id="tradeChart"></canvas></div></section></div></div>
-<div class="row g-4"><div class="col-xl-7"><section class="panel"><div class="dashboard-heading"><div><h2>Recent Attendance Activity</h2><p>Latest saved attendance records.</p></div><a href="/attendance" class="btn btn-sm btn-outline-success">View all</a></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Student</th><th>Date</th><th>Status</th><th>Arrival</th></tr></thead><tbody>{{ recent_rows|safe or '<tr><td colspan="4" class="muted">No attendance records have been saved yet.</td></tr>'|safe }}</tbody></table></div></section></div><div class="col-xl-5"><section class="panel"><div class="dashboard-heading"><div><h2>Activity Timeline</h2><p>Latest attendance events.</p></div></div><div class="timeline">{{ timeline_items|safe or '<div class="muted">No recent activity is available.</div>'|safe }}</div></section></div></div>
-<section class="panel"><div class="dashboard-heading"><div><h2>Quick Access</h2><p>Open the most-used school modules.</p></div></div><div class="row g-3 quick-access-grid"><div class="col-md-3"><a class="quick-link" href="/students"><i class="bi bi-people"></i><span><strong>Students</strong><small class="d-block muted">Registration & records</small></span></a></div><div class="col-md-3"><a class="quick-link" href="/grades"><i class="bi bi-journal-text"></i><span><strong>Report Cards</strong><small class="d-block muted">Academic results</small></span></a></div><div class="col-md-3"><a class="quick-link" href="/fees"><i class="bi bi-cash-stack"></i><span><strong>Fees</strong><small class="d-block muted">Payment records</small></span></a></div><div class="col-md-3"><a class="quick-link" href="/timetable"><i class="bi bi-calendar3"></i><span><strong>Timetable</strong><small class="d-block muted">Class schedules</small></span></a></div></div></section>
-<script>const chartText=getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();new Chart(document.getElementById('attendanceChart'),{type:'line',data:{labels:{{ labels|safe }},datasets:[{label:'Attendance records',data:{{ attendance_series|safe }},borderColor:'#0b9b70',backgroundColor:'rgba(11,155,112,.12)',fill:true,tension:.38,pointRadius:4,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0,color:chartText},grid:{color:'rgba(120,135,140,.12)'}},x:{ticks:{color:chartText},grid:{display:false}}}}});new Chart(document.getElementById('tradeChart'),{type:'doughnut',data:{labels:{{ trade_labels|safe }},datasets:[{data:{{ trade_values|safe }},backgroundColor:['#0b9b70','#39bd72','#d9ad2b','#8cc63e','#7a8b85','#4f6f64'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{position:'bottom',labels:{color:chartText,usePointStyle:true,padding:14}}}}});</script>
+<style>
+.admin-dash{--ad-purple:#7c3aed;--ad-blue:#1d4ed8;--ad-pink:#ff4c61;--ad-green:#22c55e;--ad-orange:#f97316;--ad-soft:#f4f6fb;display:grid;gap:18px}
+.admin-dash-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.admin-dash-heading h1{margin:6px 0 4px;font-size:clamp(1.45rem,2.2vw,1.9rem)}
+.admin-dash-heading p{margin:0;color:var(--muted)}
+.admin-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.admin-kpi{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:118px;padding:18px 18px 16px;border-radius:22px;text-decoration:none;color:inherit;box-shadow:0 10px 28px rgba(15,23,42,.06);border:1px solid transparent;transition:transform .18s ease,box-shadow .18s ease}
+.admin-kpi:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(15,23,42,.1);color:inherit}
+.admin-kpi-copy{min-width:0}
+.admin-kpi-label{font-size:.78rem;font-weight:700;opacity:.86;margin-bottom:8px}
+.admin-kpi-value{font-size:clamp(1.55rem,2.4vw,2.05rem);font-weight:850;line-height:1;letter-spacing:-.03em}
+.admin-kpi-note{margin-top:8px;font-size:.68rem;font-weight:650;opacity:.8}
+.admin-kpi-purple{background:linear-gradient(145deg,#8b5cf6,#6d28d9);color:#fff}
+.admin-kpi-blue{background:linear-gradient(145deg,#2563eb,#1e3a8a);color:#fff}
+.admin-kpi-white{background:var(--card);border-color:var(--border);color:var(--text)}
+.admin-kpi-white .admin-kpi-label,.admin-kpi-white .admin-kpi-note{color:var(--muted);opacity:1}
+.admin-kpi-icon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.18);font-size:1.15rem}
+.admin-kpi-white .admin-kpi-icon{background:#eef2ff;color:var(--ad-blue)}
+.admin-ring{width:64px;height:64px;flex:0 0 auto}
+.admin-ring-bg{fill:none;stroke:rgba(15,23,42,.08);stroke-width:3.2}
+[data-theme="dark"] .admin-ring-bg{stroke:rgba(255,255,255,.12)}
+.admin-ring-fg{fill:none;stroke-width:3.2;stroke-linecap:round}
+.admin-ring-text{font-size:7.5px;font-weight:800;fill:var(--text)}
+.admin-mid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(260px,.85fr);gap:14px}
+.admin-bottom{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(180px,.55fr) minmax(220px,.75fr);gap:14px}
+.admin-card{background:var(--card);border:1px solid var(--border);border-radius:22px;padding:18px 18px 16px;box-shadow:0 10px 28px rgba(15,23,42,.045)}
+.admin-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.admin-card-head h2{margin:0;font-size:1.02rem}
+.admin-card-head p{margin:4px 0 0;color:var(--muted);font-size:.78rem}
+.admin-toggle{display:inline-flex;gap:6px;background:var(--ad-soft);border-radius:999px;padding:4px}
+[data-theme="dark"] .admin-toggle{background:rgba(255,255,255,.06)}
+.admin-toggle span{border:0;border-radius:999px;padding:5px 10px;font-size:.68rem;font-weight:750;color:var(--muted)}
+.admin-toggle .is-active{background:#fff;color:var(--text);box-shadow:0 2px 8px rgba(15,23,42,.08)}
+[data-theme="dark"] .admin-toggle .is-active{background:rgba(255,255,255,.12);color:#fff}
+.admin-finance-stats{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:8px}
+.admin-finance-stats strong{display:block;font-size:1.05rem;letter-spacing:-.02em}
+.admin-finance-stats small{color:var(--muted);font-size:.72rem;font-weight:700}
+.admin-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.admin-dot-green{background:var(--ad-green)}.admin-dot-orange{background:var(--ad-orange)}
+.admin-chart{height:220px;position:relative}
+.admin-cal-weekdays,.admin-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;text-align:center}
+.admin-cal-weekdays{margin-bottom:8px;color:var(--muted);font-size:.68rem;font-weight:750}
+.admin-cal-day{display:grid;place-items:center;min-height:34px;border-radius:12px;font-size:.78rem;font-weight:700;color:var(--text)}
+.admin-cal-day.is-empty{visibility:hidden}
+.admin-cal-day.has-event{background:rgba(255,76,97,.12);color:var(--ad-pink)}
+.admin-cal-day.is-today{background:var(--ad-pink);color:#fff;box-shadow:0 6px 14px rgba(255,76,97,.28)}
+.admin-donuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:end}
+.admin-donut{text-align:center}
+.admin-donut canvas{max-width:110px;margin:0 auto}
+.admin-donut strong{display:block;margin-top:6px;font-size:.95rem}
+.admin-donut small{color:var(--muted);font-size:.7rem;font-weight:700}
+.admin-summary{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px;min-height:180px}
+.admin-summary-value{font-size:2.1rem;font-weight:850;letter-spacing:-.04em;line-height:1}
+.admin-summary-trend{display:inline-flex;align-items:center;gap:6px;color:var(--ad-pink);font-weight:750;font-size:.78rem}
+.admin-recent-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.admin-recent-list li{display:flex;align-items:center;gap:10px}
+.admin-recent-list strong{display:block;font-size:.82rem}
+.admin-recent-list small{color:var(--muted);font-size:.7rem}
+.admin-avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#8b5cf6,#2563eb);color:#fff;font-weight:800;font-size:.78rem;flex:0 0 auto}
+.admin-empty{color:var(--muted);font-size:.82rem}
+.admin-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.admin-quick a{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--border);border-radius:14px;color:var(--text);background:var(--ad-soft);font-weight:700;font-size:.82rem}
+[data-theme="dark"] .admin-quick a{background:rgba(255,255,255,.04)}
+.admin-quick a i{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:#fff;color:var(--ad-blue)}
+[data-theme="dark"] .admin-quick a i{background:rgba(255,255,255,.08)}
+@media(max-width:1100px){.admin-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-mid,.admin-bottom{grid-template-columns:1fr}.admin-quick{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.admin-kpis,.admin-donuts,.admin-quick{grid-template-columns:1fr}.admin-kpi{min-height:98px}.admin-chart{height:190px}}
+</style>
+<div class="admin-dash">
+  <div class="admin-dash-heading">
+    <div>
+      <span class="pill">SCHOOL OVERVIEW</span>
+      <h1>Welcome back, <span class="accent">{{ current_user.full_name }}</span></h1>
+      <p>Live school metrics from records currently stored in the database.</p>
+    </div>
+    <a class="btn btn-accent" href="/admin"><i class="bi bi-gear me-1"></i> Admin Center</a>
+  </div>
+
+  <section class="admin-kpis" aria-label="Key metrics">
+    <a class="admin-kpi admin-kpi-purple" href="/students">
+      <div class="admin-kpi-copy">
+        <div class="admin-kpi-label">Total Students</div>
+        <div class="admin-kpi-value">{{ total_students }}</div>
+        <div class="admin-kpi-note">{{ total_accounts }} system accounts</div>
+      </div>
+      <span class="admin-kpi-icon"><i class="bi bi-people-fill"></i></span>
+    </a>
+    <a class="admin-kpi admin-kpi-blue" href="/admin">
+      <div class="admin-kpi-copy">
+        <div class="admin-kpi-label">Total Teachers</div>
+        <div class="admin-kpi-value">{{ total_teachers }}</div>
+        <div class="admin-kpi-note">Teacher accounts</div>
+      </div>
+      <span class="admin-kpi-icon"><i class="bi bi-mortarboard-fill"></i></span>
+    </a>
+    <a class="admin-kpi admin-kpi-white" href="/day-schedule">
+      <div class="admin-kpi-copy">
+        <div class="admin-kpi-label">Events</div>
+        <div class="admin-kpi-value">{{ upcoming_events }}</div>
+        <div class="admin-kpi-note">Upcoming schedules & meetings</div>
+      </div>
+      {{ events_ring_svg|safe }}
+    </a>
+    <a class="admin-kpi admin-kpi-white" href="/admissions">
+      <div class="admin-kpi-copy">
+        <div class="admin-kpi-label">Admissions</div>
+        <div class="admin-kpi-value">{{ total_admissions }}</div>
+        <div class="admin-kpi-note">{{ pending_admissions }} pending review</div>
+      </div>
+      {{ admissions_ring_svg|safe }}
+    </a>
+  </section>
+
+  <div class="admin-mid">
+    <section class="admin-card">
+      <div class="admin-card-head">
+        <div>
+          <h2>School Finance</h2>
+          <p>Fee payments recorded during the last 7 days.</p>
+        </div>
+        <div class="admin-toggle" aria-hidden="true"><span>Monthly</span><span class="is-active">Weekly</span></div>
+      </div>
+      <div class="admin-finance-stats">
+        <div><small><span class="admin-dot admin-dot-green"></span>Income</small><strong>{{ week_income_display }} RWF</strong></div>
+        <div><small><span class="admin-dot admin-dot-orange"></span>Expense</small><strong>0 RWF</strong></div>
+      </div>
+      <div class="admin-chart"><canvas id="adminFinanceChart"></canvas></div>
+    </section>
+    <section class="admin-card">
+      <div class="admin-card-head">
+        <div>
+          <h2>School Event Calendar</h2>
+          <p>{{ month_label }}</p>
+        </div>
+        <a href="/meetings" class="btn btn-sm btn-outline-success">Meetings</a>
+      </div>
+      {{ calendar_html|safe }}
+    </section>
+  </div>
+
+  <div class="admin-bottom">
+    <section class="admin-card">
+      <div class="admin-card-head">
+        <div>
+          <h2>Attendance Snapshot</h2>
+          <p>Today’s present, absent, and teacher share of staff.</p>
+        </div>
+        <span class="pill">{{ today_iso }}</span>
+      </div>
+      <div class="admin-donuts">
+        <div class="admin-donut"><canvas id="adminActiveChart"></canvas><strong>{{ active_pct }}%</strong><small>Present / Late</small></div>
+        <div class="admin-donut"><canvas id="adminInactiveChart"></canvas><strong>{{ inactive_pct }}%</strong><small>Absent</small></div>
+        <div class="admin-donut"><canvas id="adminTeacherChart"></canvas><strong>{{ teacher_pct }}%</strong><small>Teachers of staff</small></div>
+      </div>
+    </section>
+    <section class="admin-card admin-summary">
+      <small class="muted" style="font-weight:750">Admission Summary</small>
+      <div class="admin-summary-value">{{ total_admissions }}</div>
+      <div class="admin-summary-trend"><i class="bi bi-arrow-down-right"></i> {{ pending_admissions }} awaiting review</div>
+      <a class="btn btn-sm btn-accent mt-2" href="/admissions">Open admissions</a>
+    </section>
+    <section class="admin-card">
+      <div class="admin-card-head">
+        <div>
+          <h2>Recent Students</h2>
+          <p>Latest student accounts.</p>
+        </div>
+        <a href="/students" class="btn btn-sm btn-outline-success">View all</a>
+      </div>
+      <ul class="admin-recent-list">{{ recent_students_html|safe }}</ul>
+    </section>
+  </div>
+
+  <section class="admin-card">
+    <div class="admin-card-head">
+      <div>
+        <h2>Quick Access</h2>
+        <p>Open the most-used school modules. Pending RFID cards: {{ pending_cards }}.</p>
+      </div>
+    </div>
+    <div class="admin-quick">
+      <a href="/students"><i class="bi bi-people"></i><span>Students</span></a>
+      <a href="/grades"><i class="bi bi-journal-text"></i><span>Report Cards</span></a>
+      <a href="/fees"><i class="bi bi-cash-stack"></i><span>Fees</span></a>
+      <a href="/timetable"><i class="bi bi-calendar3"></i><span>Timetable</span></a>
+    </div>
+  </section>
+</div>
+<script>
+(() => {
+  const muted = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#667085';
+  const financeLabels = {{ finance_labels|safe }};
+  const financeIncome = {{ finance_income|safe }};
+  const commonDonut = (el, value, color) => {
+    if (!el || !window.Chart) return;
+    new Chart(el, {
+      type: 'doughnut',
+      data: { labels: ['Value', 'Rest'], datasets: [{ data: [value, Math.max(0, 100 - value)], backgroundColor: [color, 'rgba(148,163,184,.18)'], borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: true, cutout: '72%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+    });
+  };
+  if (window.Chart) {
+    new Chart(document.getElementById('adminFinanceChart'), {
+      type: 'line',
+      data: {
+        labels: financeLabels,
+        datasets: [
+          { label: 'Income', data: financeIncome, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,.12)', fill: true, tension: .38, pointRadius: 4, pointHoverRadius: 6 },
+          { label: 'Expense', data: financeLabels.map(() => 0), borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,.08)', fill: false, tension: .38, pointRadius: 3 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: muted, callback: (v) => Number(v).toLocaleString() }, grid: { color: 'rgba(120,135,140,.12)' } },
+          x: { ticks: { color: muted }, grid: { display: false } }
+        }
+      }
+    });
+    commonDonut(document.getElementById('adminActiveChart'), {{ active_pct }}, '#ff4c61');
+    commonDonut(document.getElementById('adminInactiveChart'), {{ inactive_pct }}, '#8b5cf6');
+    commonDonut(document.getElementById('adminTeacherChart'), {{ teacher_pct }}, '#2563eb');
+  }
+})();
+</script>
 """
-        return page("Analytics Dashboard", body, "master_admin", total_accounts=total_accounts,total_students=total_students,total_teachers=total_teachers,today_attendance=today_attendance,pending_cards=pending_cards,today_iso=today_iso,recent_rows=recent_rows,timeline_items=timeline_items,labels=json.dumps(labels),attendance_series=json.dumps(attendance_series),trade_labels=json.dumps(trade_labels),trade_values=json.dumps(trade_values))
+        return page(
+            "Analytics Dashboard",
+            body,
+            "master_admin",
+            total_accounts=total_accounts,
+            total_students=total_students,
+            total_teachers=total_teachers,
+            today_attendance=today_attendance,
+            pending_cards=pending_cards,
+            today_iso=today_iso,
+            upcoming_events=upcoming_events,
+            total_admissions=total_admissions,
+            pending_admissions=pending_admissions,
+            week_income_total=week_income_total,
+            week_income_display=f"{week_income_total:,.0f}",
+            month_label=month_label,
+            active_pct=active_pct,
+            inactive_pct=inactive_pct,
+            teacher_pct=teacher_pct,
+            events_ring_svg=events_ring_svg,
+            admissions_ring_svg=admissions_ring_svg,
+            calendar_html=calendar_html,
+            recent_students_html=recent_students_html,
+            finance_labels=json.dumps(finance_labels),
+            finance_income=json.dumps(finance_income),
+        )
     if role == "head_teacher":
         student_count = User.query.filter_by(role="student").count()
         teacher_count = User.query.filter_by(role="teacher").count()
