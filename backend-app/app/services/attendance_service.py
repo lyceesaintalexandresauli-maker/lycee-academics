@@ -135,13 +135,12 @@ def school_attendance_summary(day=None):
 
 
 def student_class_attendance_summary(student, day=None):
-    """Summarize the exact class section associated with a scanned student's card."""
+    """Summarize attendance for students in the same academic class."""
     fields = (
         ("department", student.department or student.trade),
         ("trade", student.trade),
         ("level", student.level),
         ("class_name", student.class_name),
-        ("class_section", student.class_section),
     )
     query = User.query.filter(
         User.role == "student",

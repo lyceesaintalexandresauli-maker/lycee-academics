@@ -631,35 +631,39 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(link.getAttribute('href')===path){link.classList.add('active');link.setAttribute('aria-current','page');}
   });
   document.querySelectorAll('.sidebar a').forEach(link=>link.addEventListener('click',()=>toggleSidebar(false)));
-  document.querySelectorAll('form').forEach(form=>{
-    const trade=form.querySelector('.trade-select');
-    const level=form.querySelector('.level-select');
-    const classField=form.querySelector('#class-name');
-    const classChoice=form.querySelector('#class-choice');
-    if(!trade||!level)return;
-    const allLevels=Array.from(level.querySelectorAll('option[data-trade]'));
-    const allClasses=classChoice?Array.from(classChoice.querySelectorAll('option[data-trade]')):[];
-    function update(){
-      const previousLevel=level.value;
-      level.innerHTML='<option value="">Choose level...</option>';
-      allLevels.filter(option=>option.dataset.trade===trade.value).forEach(option=>level.appendChild(option.cloneNode(true)));
-      level.disabled=!trade.value;
-      if(Array.from(level.options).some(option=>option.value===previousLevel))level.value=previousLevel;
-      if(classChoice){
-        classChoice.innerHTML='<option value="">Choose a class...</option>';
-        allClasses.filter(option=>option.dataset.trade===trade.value&&option.dataset.level===level.value).forEach(option=>classChoice.appendChild(option.cloneNode(true)));
-        classChoice.disabled=!trade.value||!level.value;
-        classChoice.value='';
-        if(classField)classField.value='';
-      }
+  document.querySelectorAll('.academic-placement-fields').forEach(fields=>{
+    const department=fields.querySelector('[name="department"]');
+    const trade=fields.querySelector('[name="trade"]');
+    const level=fields.querySelector('[name="level"]');
+    const className=fields.querySelector('[name="class_name"]');
+    if(!department||!trade||!level||!className)return;
+    const tradeOptions=Array.from(trade.querySelectorAll('option[data-department]'));
+    const levelOptions=Array.from(level.querySelectorAll('option[data-department]'));
+    const classOptions=Array.from(className.querySelectorAll('option[data-department]'));
+    function replaceOptions(select,options,placeholder,enabled){
+      const selected=select.value;
+      select.replaceChildren(new Option(placeholder,''),...options.map(option=>option.cloneNode(true)));
+      select.value=options.some(option=>option.value===selected)?selected:'';
+      select.disabled=!enabled;
     }
-    if(classChoice)classChoice.addEventListener('change',()=>{if(classField)classField.value=classChoice.value;});
-    trade.addEventListener('change',update);
-    level.addEventListener('change',update);
-    update();
+    function updateTrade(){
+      replaceOptions(trade,tradeOptions.filter(option=>option.dataset.department===department.value),'Choose trade...',Boolean(department.value));
+      updateLevel();
+    }
+    function updateLevel(){
+      replaceOptions(level,levelOptions.filter(option=>option.dataset.department===department.value&&option.dataset.trade===trade.value),'Choose level...',Boolean(trade.value));
+      updateClass();
+    }
+    function updateClass(){
+      replaceOptions(className,classOptions.filter(option=>option.dataset.department===department.value&&option.dataset.trade===trade.value&&option.dataset.level===level.value),'Choose a class...',Boolean(level.value));
+    }
+    department.addEventListener('change',()=>{trade.value='';level.value='';className.value='';updateTrade();});
+    trade.addEventListener('change',()=>{level.value='';className.value='';updateLevel();});
+    level.addEventListener('change',()=>{className.value='';updateClass();});
+    updateTrade();
   });
 });
-document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('select[name="role"]').forEach(role=>{const classField=role.form?.querySelector('[name="class_name"]'),fields=role.form?.querySelector('.teacher-class-fields');const syncRequired=()=>{const isTeacher=role.value==='teacher';if(classField)classField.required=isTeacher;if(fields)fields.hidden=!isTeacher};role.addEventListener('change',syncRequired);syncRequired()});const trade=document.getElementById('staff-trade'),level=document.getElementById('staff-level'),classChoice=document.getElementById('staff-class-choice');if(trade&&level&&classChoice){const levels=Array.from(level.querySelectorAll('option[data-trade]')),classes=Array.from(classChoice.querySelectorAll('option[data-trade]'));function updateStaffLevels(){const selectedTrade=trade.value,available=levels.filter(option=>option.dataset.trade===selectedTrade);level.innerHTML='<option value="">Choose level...</option>';available.forEach(option=>level.appendChild(option.cloneNode(true)));level.disabled=!selectedTrade;updateStaffClasses()}function updateStaffClasses(){const selectedTrade=trade.value,selectedLevel=level.value;classChoice.innerHTML='<option value="">Choose class...</option>';classes.filter(option=>option.dataset.trade===selectedTrade&&option.dataset.level===selectedLevel).forEach(option=>classChoice.appendChild(option.cloneNode(true)));classChoice.disabled=!selectedTrade||!selectedLevel}trade.addEventListener('change',updateStaffLevels);level.addEventListener('change',updateStaffClasses);updateStaffLevels()}});
+document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('select[name="role"]').forEach(role=>{const classField=role.form?.querySelector('[name="class_name"]'),fields=role.form?.querySelector('.teacher-class-fields');const syncRequired=()=>{const isTeacher=role.value==='teacher';if(classField)classField.required=isTeacher;if(fields)fields.hidden=!isTeacher};role.addEventListener('change',syncRequired);syncRequired()});});
 </script></head><body>
 <aside class="sidebar" id="app-sidebar" role="navigation" aria-label="Main navigation"><a class="sidebar-brand" href="/"><img src="{{ school_logo_url }}" onerror="this.style.display='none'" alt="School logo"><div><div class="brand-title">LYCÉE DE MUHURA</div><div class="brand-sub">LYCÉE SAINT ALEXANDRE SAULI</div></div></a>
 <button class="sidebar-collapse-toggle" type="button" data-sidebar-collapse aria-label="Collapse sidebar" aria-pressed="false" onclick="toggleSidebarWidth()"><i class="bi bi-chevron-bar-left" aria-hidden="true"></i><span>Collapse sidebar</span></button>

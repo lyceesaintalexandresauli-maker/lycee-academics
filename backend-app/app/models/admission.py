@@ -11,7 +11,6 @@ class AdmissionApplicant(db.Model):
     desired_trade = db.Column(db.String(100), nullable=False)
     desired_level = db.Column(db.String(50), nullable=False)
     desired_class = db.Column(db.String(100), nullable=False)
-    desired_section = db.Column(db.String(50))
     documents_submitted = db.Column(db.Text)
     documents_verified = db.Column(db.Boolean, nullable=False, default=False)
     status = db.Column(db.String(30), nullable=False, default="Submitted", index=True)

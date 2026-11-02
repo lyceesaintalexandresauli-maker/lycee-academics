@@ -41,7 +41,6 @@ class SchoolClass(db.Model):
     trade_id = db.Column(db.Integer, db.ForeignKey("trade.id"), nullable=False, index=True)
     name = db.Column(db.String(160), nullable=False)
     level = db.Column(db.String(30), nullable=False)
-    section = db.Column(db.String(30))
     code = db.Column(db.String(80), unique=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     __table_args__ = (db.UniqueConstraint("trade_id", "name", name="uq_class_trade_name"),)

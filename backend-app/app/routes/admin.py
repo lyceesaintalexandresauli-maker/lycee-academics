@@ -15,6 +15,7 @@ from app.models import (User, Attendance, PendingCard, FeeTransaction, FeeRequir
 from app.models import StudentGuardian
 from app.models import AcademicSubject
 from app.utils.constants import *
+from app.utils.academic_placement import is_valid_academic_placement
 from app.utils.decorators import role_required
 from app.utils.helpers import get_setting, set_setting, attendance_for_student
 from app.utils.rendering import page
@@ -157,6 +158,7 @@ def admin():
             full_name = request.form.get("full_name", "").strip()
             password = request.form.get("password", "")
             role = request.form.get("role", "teacher")
+            assignment_departments = request.form.getlist("assignment_department[]")
             assignment_trades = request.form.getlist("assignment_trade[]")
             assignment_levels = request.form.getlist("assignment_level[]")
             assignment_classes = request.form.getlist("assignment_class[]")
@@ -164,42 +166,46 @@ def admin():
             assignments = []
             assignment_error = False
             if role == "teacher":
-                row_count = max(map(len, (assignment_trades, assignment_levels, assignment_classes, assignment_subjects)), default=0)
+                row_count = max(map(len, (assignment_departments, assignment_trades, assignment_levels, assignment_classes, assignment_subjects)), default=0)
                 for index in range(row_count):
+                    department = assignment_departments[index].strip() if index < len(assignment_departments) else ""
                     trade = assignment_trades[index].strip() if index < len(assignment_trades) else ""
                     level = assignment_levels[index].strip() if index < len(assignment_levels) else ""
                     class_name = assignment_classes[index].strip() if index < len(assignment_classes) else ""
                     subject = assignment_subjects[index].strip() if index < len(assignment_subjects) else ""
-                    if not any((trade, level, class_name, subject)):
+                    if not any((department, trade, level, class_name, subject)):
                         continue
-                    if CLASS_TRADE_LEVEL.get(class_name) != (trade, level) or not subject:
+                    if not is_valid_academic_placement(department, trade, level, class_name) or not subject:
                         assignment_error = True
                         break
-                    assignments.append((trade, level, class_name, subject))
+                    assignments.append((department, trade, level, class_name, subject))
                 if not assignments:
                     assignment_error = True
-                assignment_keys = [(class_name.casefold(), subject.casefold()) for _, _, class_name, subject in assignments]
+                assignment_keys = [
+                    (class_name.casefold(), subject.casefold())
+                    for _, _, _, class_name, subject in assignments
+                ]
                 if len(assignment_keys) != len(set(assignment_keys)):
                     assignment_error = True
             conflicting_assignment = any(
                 AcademicSubject.query.filter_by(class_name=class_name, subject=subject).filter(
                     AcademicSubject.teacher_id.isnot(None)
                 ).first()
-                for _, _, class_name, subject in assignments
+                for _, _, _, class_name, subject in assignments
             )
             if not username or not full_name or len(password) < 8 or role not in STAFF_ROLES or assignment_error:
-                flash("Enter valid staff details and add at least one complete teacher assignment (trade, level, class, and lesson).", "danger")
+                flash("Enter valid staff details and add at least one complete teacher assignment (department, trade, level, class, and lesson).", "danger")
             elif conflicting_assignment:
                 flash("One of these class lessons is already assigned to another teacher. Review Academic Management first.", "danger")
             elif User.query.filter_by(username=username).first():
                 flash("Username already exists.", "danger")
             else:
                 u = User(username=username, full_name=full_name, role=role, email=request.form.get("email") or None,
-                         class_name=assignments[0][2] if role == "teacher" else None)
+                         class_name=assignments[0][3] if role == "teacher" else None)
                 u.set_password(password)
                 db.session.add(u)
                 db.session.flush()
-                for trade, level, class_name, subject in assignments:
+                for _, trade, level, class_name, subject in assignments:
                     existing_subjects = AcademicSubject.query.filter_by(class_name=class_name, subject=subject).all()
                     if existing_subjects:
                         for existing in existing_subjects:
@@ -244,16 +250,25 @@ def admin():
     teachers = [u for u in users if u.role == "teacher"]
     class_names = sorted({student.class_name for student in students if student.class_name})
     class_options = "".join(f"<option value='{name}'>{name}</option>" for name in class_names)
+    staff_department_options = "".join(
+        f'<option value="{escape(department)}">{escape(department)}</option>'
+        for department in DEPARTMENTS
+    )
     staff_trade_options = "".join(
-        f'<option value="{escape(trade)}">{escape(trade)}</option>' for trade in TRADES
+        f'<option value="{escape(trade)}" data-department="{escape(department)}">{escape(trade)}</option>'
+        for department, trade_map in SCHOOL_STRUCTURE.items() for trade in trade_map
     )
     staff_level_options = "".join(
-        f'<option value="{escape(level)}" data-trade="{escape(trade)}">{escape(level)}</option>'
-        for trade, levels in PROGRAM_LEVELS.items() for level in levels
+        f'<option value="{escape(level)}" data-department="{escape(department)}" data-trade="{escape(trade)}">{escape(level)}</option>'
+        for department, trade_map in SCHOOL_STRUCTURE.items()
+        for trade, levels in trade_map.items() for level in levels
     )
     staff_class_options = "".join(
-        f'<option value="{escape(class_name)}" data-trade="{escape(trade)}" data-level="{escape(level)}">{escape(class_name)}</option>'
-        for class_name, (trade, level) in CLASS_TRADE_LEVEL.items()
+        f'<option value="{escape(class_name)}" data-department="{escape(department)}" data-trade="{escape(trade)}" data-level="{escape(level)}">{escape(class_name)}</option>'
+        for department, trade_map in SCHOOL_STRUCTURE.items()
+        for trade, level_map in trade_map.items()
+        for level, class_names in level_map.items()
+        for class_name in class_names
     )
     staff_subject_options = "".join(
         f'<option value="{escape(subject)}">' for subject in (
@@ -283,7 +298,7 @@ def admin():
         )
         student_record_details = (
             f"<dt class='col-sm-4'>Department / trade</dt><dd class='col-sm-8'>{escape(user.department or user.trade or 'Not set')}</dd>"
-            f"<dt class='col-sm-4'>Level / class</dt><dd class='col-sm-8'>{escape(user.level or 'Not set')} / {escape(user.class_name or 'Not set')} / {escape(user.class_section or 'No section')}</dd>"
+            f"<dt class='col-sm-4'>Level / class</dt><dd class='col-sm-8'>{escape(user.level or 'Not set')} / {escape(user.class_name or 'Not set')}</dd>"
             f"<dt class='col-sm-4'>Student record</dt><dd class='col-sm-8'><a href='{url_for('student_profile_by_id', student_id=user.id)}'>Open profile and actions</a></dd>"
             if user.role == "student" else ""
         )
@@ -337,13 +352,67 @@ def admin():
         f"<option value='{role}'>{'Master Admin - Full system administrator' if role == 'master_admin' else 'Head Teacher - School-wide academic and student affairs supervision' if role == 'head_teacher' else 'Accountant - School finances and fee reporting' if role == 'accountant' else 'Discipline Officer - Student behavior and discipline cases' if role == 'discipline' else 'Librarian - Books, loans, returns, and overdue tracking' if role == 'librarian' else 'Matron / Patron - Boarding student supervision' if role in {'matron', 'patron'} else 'Secretary - Official correspondence and authorized reports' if role == 'secretary' else 'Teacher - Classes, lessons, assessments, and academic reports' if role == 'teacher' else role.replace('_', ' ').title()}</option>"
         for role in sorted(STAFF_ROLES)
     )
-
     body = f"""<section class="panel"><h1>Master Admin <span class="accent">Control Center</span></h1><p class="muted"><strong>Master Admin</strong> is the main system administrator. This role manages users, roles, permissions, and system settings, with access to all school information.</p><p class="muted"><strong>Head Teacher</strong> leads school activities and supervises teachers, students, examination results, discipline, and general school reports.</p><p class="muted"><strong>Accountant</strong> manages school finances, student payments, receipts, outstanding fees, and financial reports.</p><p class="muted"><strong>Discipline Officer</strong> manages student behavior, disciplinary offenses, punishments, discipline reports, and measures to resolve disciplinary issues.</p><p class="muted"><strong>Librarian</strong> manages library books, registers new books, issues and receives books, and tracks overdue or unreturned books.</p><p class="muted"><strong>Matron / Patron</strong> manages boarding students, monitors attendance in the dormitories, supervises behavior, and handles issues affecting assigned students.</p><p class="muted"><strong>Secretary</strong> manages official letters and documents, receives and sends correspondence, and prepares administrative reports they are authorized to access.</p><p class="muted"><strong>Teacher</strong> manages attendance for assigned classes, lessons, assessments, and academic reports.</p><p class="muted"><strong>Student</strong> can view personal examination results, attendance records, class timetables, school announcements, and outstanding school fees according to assigned permissions.</p><p class="muted"><strong>Parent / Guardian</strong> can view information about their child, including examination results, attendance, paid or outstanding fees, and school announcements.</p><div class="row g-4"><div class="col-md-6"><h3>Create Staff Account</h3><form method="post" id="create-staff-form"><input type="hidden" name="action" value="create_staff"><label class="mt-2">Full Name</label><input class="form-control" name="full_name" required><label class="mt-2">Username</label><input class="form-control" name="username" required><label class="mt-2">Role</label><select class="form-select" name="role">{role_options}</select><div class="teacher-class-fields" hidden><p class="muted mt-2 mb-1">Assign one or more lessons. You can include classes from different trades or departments.</p><div id="teacher-assignments"><div class="teacher-assignment row g-2 border rounded p-2 mt-2"><div class="col-md-3"><label>Trade / Department</label><select class="form-select assignment-trade" name="assignment_trade[]"><option value="">Choose trade...</option>{staff_trade_options}</select></div><div class="col-md-2"><label>Level</label><select class="form-select assignment-level" name="assignment_level[]" disabled><option value="">Choose trade first...</option>{staff_level_options}</select></div><div class="col-md-3"><label>Class</label><select class="form-select assignment-class" name="assignment_class[]" disabled><option value="">Choose level first...</option>{staff_class_options}</select></div><div class="col-md-3"><label>Lesson / Subject</label><input class="form-control" name="assignment_subject[]" maxlength="160" list="general-course-subjects" placeholder="e.g. Software Development"></div><div class="col-md-1 d-flex align-items-end"><button class="btn btn-outline-danger remove-assignment" type="button" aria-label="Remove assignment">&times;</button></div></div></div><datalist id="general-course-subjects">{staff_subject_options}</datalist><button class="btn btn-sm btn-outline-primary mt-2" type="button" id="add-teacher-assignment">Add another class / lesson assignment</button></div><label class="mt-2">Password (8+ chars)</label><input type="password" minlength="8" class="form-control" name="password" required><button class="btn btn-accent mt-3">Create Staff Account</button></form><template id="teacher-assignment-template"><div class="teacher-assignment row g-2 border rounded p-2 mt-2"><div class="col-md-3"><label>Trade / Department</label><select class="form-select assignment-trade" name="assignment_trade[]"><option value="">Choose trade...</option>{staff_trade_options}</select></div><div class="col-md-2"><label>Level</label><select class="form-select assignment-level" name="assignment_level[]" disabled><option value="">Choose trade first...</option>{staff_level_options}</select></div><div class="col-md-3"><label>Class</label><select class="form-select assignment-class" name="assignment_class[]" disabled><option value="">Choose level first...</option>{staff_class_options}</select></div><div class="col-md-3"><label>Lesson / Subject</label><input class="form-control" name="assignment_subject[]" maxlength="160" list="general-course-subjects" placeholder="e.g. Software Development"></div><div class="col-md-1 d-flex align-items-end"><button class="btn btn-outline-danger remove-assignment" type="button" aria-label="Remove assignment">&times;</button></div></div></template><script>(function(){{const container=document.getElementById('teacher-assignments'),template=document.getElementById('teacher-assignment-template');function setup(row){{const trade=row.querySelector('.assignment-trade'),level=row.querySelector('.assignment-level'),klass=row.querySelector('.assignment-class'),levels=[...level.querySelectorAll('option[data-trade]')],classes=[...klass.querySelectorAll('option[data-trade]')];function updateLevels(){{level.innerHTML='<option value="">Choose level...</option>';levels.filter(option=>option.dataset.trade===trade.value).forEach(option=>level.appendChild(option.cloneNode(true)));level.disabled=!trade.value;updateClasses()}}function updateClasses(){{klass.innerHTML='<option value="">Choose class...</option>';classes.filter(option=>option.dataset.trade===trade.value&&option.dataset.level===level.value).forEach(option=>klass.appendChild(option.cloneNode(true)));klass.disabled=!trade.value||!level.value}}trade.addEventListener('change',updateLevels);level.addEventListener('change',updateClasses);row.querySelector('.remove-assignment').addEventListener('click',()=>{{if(container.children.length>1)row.remove()}})}}container.querySelectorAll('.teacher-assignment').forEach(setup);document.getElementById('add-teacher-assignment').addEventListener('click',()=>{{const fragment=template.content.cloneNode(true),row=fragment.querySelector('.teacher-assignment');container.appendChild(fragment);setup(row)}})}})();</script></div>
 <div class="col-md-6"><h3>Link Parent to Student</h3><form method="post"><input type="hidden" name="action" value="link_parent"><label class="mt-2">Parent</label><select class="form-select" name="parent_id" required><option value="">Choose parent...</option>{parent_options}</select><label class="mt-2">Student</label><select class="form-select" name="student_id" required><option value="">Choose student...</option>{student_options}</select><button class="btn btn-accent mt-3">Link Parent & Student</button></form></div></div></section>
 <section class="panel"><h2>Assign Teacher to Class</h2><form method="post" class="row g-3 assign-teacher-form"><input type="hidden" name="action" value="assign_teacher_class"><div class="col-md-6"><label>Teacher</label><select class="form-select" name="teacher_id" required><option value="">Choose teacher...</option>{teacher_options}</select></div><div class="col-md-4"><label>Class</label><select class="form-select" name="class_name" required><option value="">Choose class...</option>{class_options}</select></div><div class="col-md-2 d-flex align-items-end"><button class="btn btn-accent">Save Assignment</button></div></form></section>
 <section class="panel"><h2>Home Page Motto</h2><p class="muted">Write or change the school's motto here. It appears beneath the school name on the public home page.</p><form method="post"><input type="hidden" name="action" value="save_motto"><label class="mt-2">School Motto</label><input class="form-control" name="school_motto" maxlength="200" value="{get_setting('school_motto', '').replace('&', '&amp;').replace('\"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')}" placeholder="Enter the official school motto"><button class="btn btn-accent mt-3">Save Motto</button></form></section>
 <section class="panel"><h2>Home Page School Logo</h2><p class="muted">Upload a PNG, JPG, JPEG, or WEBP logo. It appears on the left side of the home page and in the navigation bar.</p><form method="post" enctype="multipart/form-data" class="row g-3"><input type="hidden" name="action" value="upload_logo"><div class="col-md-8"><input type="file" name="logo_file" class="form-control" accept=".png,.jpg,.jpeg,.webp" required></div><div class="col-md-4"><button class="btn btn-accent">Upload / Replace Logo</button></div></form></section>
 <section class="panel"><h2>All System Accounts</h2><p class="muted">Use Delete to remove an account. Master Admin accounts are protected.</p><div class="table-responsive"><table class="table"><tr><th>Full Name</th><th>Username</th><th>Role</th><th>Class</th><th>Action</th></tr>{user_rows}</table></div></section>"""
+    department_field = (
+        '<div class="col-md-2"><label>Department</label><select class="form-select '
+        'assignment-department" name="assignment_department[]">'
+        f'<option value="">Choose department...</option>{staff_department_options}</select></div>'
+        '<div class="col-md-2"><label>Trade</label>'
+    )
+    body = body.replace(
+        '<div class="col-md-3"><label>Trade / Department</label>',
+        department_field,
+    )
+    body = body.replace(
+        '<div class="col-md-3"><label>Class</label><select class="form-select assignment-class"',
+        '<div class="col-md-2"><label>Class</label><select class="form-select assignment-class"',
+    )
+    body += """<script>(()=> {
+const container=document.getElementById('teacher-assignments');
+const template=document.getElementById('teacher-assignment-template');
+if(!container||!template)return;
+const allTrades=[...template.content.querySelectorAll('.assignment-trade option[data-department]')];
+const allLevels=[...template.content.querySelectorAll('.assignment-level option[data-department]')];
+const allClasses=[...template.content.querySelectorAll('.assignment-class option[data-department]')];
+function replace(select,options,placeholder,enabled){
+const selected=select.value;
+select.replaceChildren(new Option(placeholder,''),...options.map(option=>option.cloneNode(true)));
+select.value=options.some(option=>option.value===selected)?selected:'';
+select.disabled=!enabled;
+}
+function refresh(row,changed){
+const department=row.querySelector('.assignment-department');
+const trade=row.querySelector('.assignment-trade');
+const level=row.querySelector('.assignment-level');
+const className=row.querySelector('.assignment-class');
+if(changed==='department'){trade.value='';level.value='';className.value=''}
+if(changed==='trade'){level.value='';className.value=''}
+if(changed==='level')className.value='';
+replace(trade,allTrades.filter(option=>option.dataset.department===department.value),'Choose trade...',Boolean(department.value));
+replace(level,allLevels.filter(option=>option.dataset.department===department.value&&option.dataset.trade===trade.value),'Choose level...',Boolean(trade.value));
+replace(className,allClasses.filter(option=>option.dataset.department===department.value&&option.dataset.trade===trade.value&&option.dataset.level===level.value),'Choose class...',Boolean(level.value));
+}
+container.querySelectorAll('.teacher-assignment').forEach(row=>refresh(row));
+container.addEventListener('change',event=>{
+const row=event.target.closest('.teacher-assignment');
+if(!row)return;
+const changed=event.target.classList.contains('assignment-department')?'department':
+event.target.classList.contains('assignment-trade')?'trade':
+event.target.classList.contains('assignment-level')?'level':null;
+if(changed)refresh(row,changed);
+});
+new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{
+if(node.nodeType===Node.ELEMENT_NODE){
+node.querySelectorAll('.teacher-assignment').forEach(row=>refresh(row));
+if(node.matches('.teacher-assignment'))refresh(node);
+}
+}))).observe(container,{childList:true});
+})();</script>"""
     return page("Admin Center", body, "master_admin")
 
 def register_routes(app):

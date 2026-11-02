@@ -11,6 +11,10 @@ from openpyxl import Workbook
 from app.extensions import db
 from app.models import User, Attendance, PendingCard, FeeTransaction, Book, BookLoan, DisciplineCase, SchoolMessage, Grade, TimetableEntry, DayScheduleEntry, Setting, StudentGuardian
 from app.utils.constants import *
+from app.utils.academic_placement import (
+    is_valid_academic_placement,
+    render_academic_placement_fields,
+)
 from app.utils.decorators import role_required
 from app.utils.helpers import get_setting, set_setting, attendance_for_student, generate_sdms_code, teacher_assigned_classes, teacher_can_access_class, now_string, guardian_can_access_student, get_school_logo_static_url
 from app.utils.rendering import page
@@ -83,7 +87,7 @@ def student_profile(student_id=None):
     upload_form = """<form method="post" enctype="multipart/form-data" class="mt-3"><label class="form-label">Update profile photo</label><input class="form-control" type="file" name="profile_photo" accept=".png,.jpg,.jpeg,.webp" required><button class="btn btn-accent mt-2">Save Photo</button></form>""" if current_user.role == "student" else ""
     body = f"""<section class="panel"><div class="d-flex align-items-center gap-4 flex-wrap">{photo_markup}<div><span class="pill">STUDENT PROFILE</span><h1 class="mt-2">{student.full_name}</h1><p class="muted mb-0">Admission Number (SDMS Code): <code>{escape(student.sdms_code or 'Not assigned')}</code></p></div></div>{upload_form}</section>
 <section class="panel"><h2>Student Information</h2><div class="table-responsive"><table class="table"><tr><th>Name</th><td>{escape(student.full_name)}</td></tr><tr><th>Date of Birth</th><td>{escape(student.date_of_birth.isoformat() if student.date_of_birth else '-')}</td></tr><tr><th>Gender</th><td>{escape(student.gender or '-')}</td></tr><tr><th>Admission Number (SDMS Code)</th><td>{escape(student.sdms_code or '-')}</td></tr><tr><th>RFID Card UID</th><td>{escape(student.rfid_uid or '-')}</td></tr><tr><th>Class</th><td>{escape(student.class_name or '-')}</td></tr><tr><th>Academic Year</th><td>{escape(student.academic_year or '-')}</td></tr><tr><th>Level</th><td>{escape(student.level or '-')}</td></tr><tr><th>Trade</th><td>{escape(student.trade or '-')}</td></tr><tr><th>Guardian</th><td>{escape(student.guardian_name or '-')} ({escape(student.guardian_relationship or '-')})</td></tr><tr><th>Guardian Phone</th><td>{escape(student.guardian_phone or '-')}</td></tr><tr><th>Home Address</th><td>{escape(student.address or '-')}</td></tr></table></div></section>
-<section class="panel"><h2>Academic Placement</h2><div class="table-responsive"><table class="table"><tr><th>Department</th><td>{escape(student.department or student.trade or '-')}</td></tr><tr><th>Trade</th><td>{escape(student.trade or '-')}</td></tr><tr><th>Level</th><td>{escape(student.level or '-')}</td></tr><tr><th>Class</th><td>{escape(student.class_name or '-')}</td></tr><tr><th>Class Section</th><td>{escape(student.class_section or '-')}</td></tr></table></div></section>
+<section class="panel"><h2>Academic Placement</h2><div class="table-responsive"><table class="table"><tr><th>Department</th><td>{escape(student.department or student.trade or '-')}</td></tr><tr><th>Trade</th><td>{escape(student.trade or '-')}</td></tr><tr><th>Level</th><td>{escape(student.level or '-')}</td></tr><tr><th>Class</th><td>{escape(student.class_name or '-')}</td></tr></table></div></section>
 <section class="panel"><h2>Academic Timetable</h2><p class="muted">The class schedule for {student.class_name or 'this student'}.</p><div class="table-responsive"><table class="table"><tr><th>Day</th><th>Time Slot</th><th>Subject</th><th>Teacher</th></tr>{timetable_rows or '<tr><td colspan="4" class="muted">No timetable has been published for this class yet.</td></tr>'}</table></div></section>
 <section class="panel"><h2>Published Day Schedule</h2><p class="muted">Daily program and activities for this child.</p><div class="table-responsive"><table class="table"><tr><th>Date</th><th>Time</th><th>Activity</th><th>Details</th></tr>{day_schedule_rows or '<tr><td colspan="4" class="muted">No published activities are available.</td></tr>'}</table></div></section>
 <section class="panel"><h2>Library Loans</h2><div class="table-responsive"><table class="table"><tr><th>Book</th><th>Borrowed</th><th>Due Date</th><th>Returned</th><th>Status</th></tr>{book_loan_rows or '<tr><td colspan="5" class="muted">No book loans are recorded.</td></tr>'}</table></div></section>
@@ -144,7 +148,6 @@ def student_edit(student_id):
         "trade": student.trade or "",
         "level": student.level or "",
         "class_name": student.class_name or "",
-        "class_section": student.class_section or "",
         "guardian_name": student.guardian_name or "",
         "guardian_relationship": student.guardian_relationship or "",
         "guardian_phone": student.guardian_phone or "",
@@ -180,7 +183,6 @@ def student_edit(student_id):
             or form["trade"] != (student.trade or "")
             or form["level"] != (student.level or "")
             or form["class_name"] != (student.class_name or "")
-            or form["class_section"] != (student.class_section or "")
         )
         class_scope_conflict = placement_changed and any(
             (other.department or other.trade) != form["department"]
@@ -189,24 +191,26 @@ def student_edit(student_id):
             for other in other_students
         )
         current_placement_unchanged = (
+            form["department"] == (student.department or student.trade or "")
+            and
             form["class_name"] == student.class_name
             and form["trade"] == student.trade
             and form["level"] == student.level
         )
         class_matches_program = (
-            CLASS_TRADE_LEVEL.get(form["class_name"]) == (form["trade"], form["level"])
+            is_valid_academic_placement(
+                form["department"], form["trade"], form["level"], form["class_name"]
+            )
             or current_placement_unchanged
         )
 
         error = None
         if not form["full_name"] or len(form["full_name"]) > 160 or not form["username"] or len(form["username"]) > 80:
             error = "Enter a student name and username within the allowed lengths."
-        elif not form["department"] or len(form["department"]) > 100 or len(form["class_section"]) > 50:
-            error = "Enter a department of up to 100 characters and a section of up to 50 characters."
-        elif form["trade"] not in PROGRAM_LEVELS or form["level"] not in PROGRAM_LEVELS.get(form["trade"], []):
-            error = "Choose a valid trade and level."
-        elif not form["class_name"] or len(form["class_name"]) > 100 or not class_matches_program:
-            error = "Choose a class that matches the selected trade and level."
+        elif not form["department"] or len(form["department"]) > 100:
+            error = "Enter a department of up to 100 characters."
+        elif not class_matches_program:
+            error = "Choose a department, trade, level, and class from the available options."
         elif class_scope_conflict:
             error = "That class name is already assigned to a different department, trade, or level."
         elif not form["academic_year"] or len(form["academic_year"]) > 9 or not valid_academic_year:
@@ -243,7 +247,6 @@ def student_edit(student_id):
             student.trade = form["trade"]
             student.level = form["level"]
             student.class_name = form["class_name"]
-            student.class_section = form["class_section"] or None
             student.guardian_name = form["guardian_name"] or None
             student.guardian_relationship = form["guardian_relationship"] or None
             student.guardian_phone = form["guardian_phone"] or None
@@ -259,44 +262,22 @@ def student_edit(student_id):
             flash(f"Student details saved for {student.full_name}.", "success")
             return redirect(url_for("student_profile_by_id", student_id=student.id))
 
-    class_names = sorted(set(CLASS_TRADE_LEVEL) | ({student.class_name} if student.class_name else set()))
-    trade_options = "".join(f"<option value='{escape(value)}'>" for value in TRADES)
-    level_options = "".join(
-        f"<option value='{escape(level)}'>" for levels in PROGRAM_LEVELS.values() for level in levels
-    )
-    class_options = "".join(f"<option value='{escape(value)}'>" for value in class_names)
-    department_options = "".join(
-        f"<option value='{escape(value)}'>"
-        for value in sorted(
-            {user.department or user.trade for user in User.query.filter_by(role="student").all() if user.department or user.trade},
-            key=str.casefold,
-        )
-    )
     fields = (
         ("full_name", "Full name", "text", True), ("username", "Username", "text", True),
         ("email", "Student email", "email", False), ("phone", "Student phone", "tel", False),
         ("date_of_birth", "Date of birth", "date", True), ("academic_year", "Academic year", "text", True),
-        ("department", "Department", "text", True), ("trade", "Trade", "text", True),
-        ("level", "Level", "text", True), ("class_name", "Class", "text", True),
-        ("class_section", "Class section", "text", False), ("guardian_name", "Guardian name", "text", False),
+        ("guardian_name", "Guardian name", "text", False),
         ("guardian_relationship", "Guardian relationship", "text", False),
         ("guardian_phone", "Guardian phone", "tel", False), ("address", "Home address", "text", False),
         ("rfid_uid", "RFID card UID", "text", False),
     )
-    controls = []
-    datalists = {
-        "department": "student-edit-departments",
-        "trade": "student-edit-trades",
-        "level": "student-edit-levels",
-        "class_name": "student-edit-classes",
-    }
+    controls = [render_academic_placement_fields("edit", form)]
     for field, label, input_type, required in fields:
-        list_attr = f" list='{datalists[field]}'" if field in datalists else ""
         required_attr = " required" if required else ""
         controls.append(
             f"<div class='col-md-6'><label class='form-label' for='edit-{field}'>{escape(label)}</label>"
             f"<input class='form-control' id='edit-{field}' name='{field}' type='{input_type}' "
-            f"value='{escape(form[field])}' maxlength='500'{list_attr}{required_attr}></div>"
+            f"value='{escape(form[field])}' maxlength='500'{required_attr}></div>"
         )
     gender_options = "".join(
         f"<option value='{value}'{' selected' if form['gender'] == value else ''}>{value}</option>"
@@ -308,10 +289,6 @@ def student_edit(student_id):
         "<form method='post' class='row g-3'>"
         + "".join(controls)
         + f"<div class='col-md-6'><label class='form-label' for='edit-gender'>Gender</label><select class='form-select' id='edit-gender' name='gender' required>{gender_options}</select></div>"
-        + "<datalist id='student-edit-departments'>" + department_options + "</datalist>"
-        + "<datalist id='student-edit-trades'>" + trade_options + "</datalist>"
-        + "<datalist id='student-edit-levels'>" + level_options + "</datalist>"
-        + "<datalist id='student-edit-classes'>" + class_options + "</datalist>"
         + "<div class='col-12 d-flex gap-2 flex-wrap'><button class='btn btn-accent' type='submit'>Save changes</button>"
         + f"<a class='btn btn-outline-secondary' href='{url_for('student_profile_by_id', student_id=student.id)}'>Cancel</a></div></form></section>"
     )
@@ -381,18 +358,18 @@ def students():
         if not student or student.role != "student":
             abort(404)
         department = request.form.get("department", "").strip()
-        class_section = request.form.get("class_section", "").strip()
-        if not department or len(department) > 100 or len(class_section) > 50:
-            flash("Enter a department of 1 to 100 characters and a section of up to 50 characters.", "danger")
+        if not is_valid_academic_placement(
+            department, student.trade, student.level, student.class_name
+        ):
+            flash("Choose a department that matches the student's trade, level, and class.", "danger")
         else:
             student.department = department
-            student.class_section = class_section or None
             log_student_activity(
                 current_user, student, "Student placement updated",
-                f"Department set to {department}; section set to {class_section or 'Not specified'}.",
+                f"Department set to {department}.",
             )
             db.session.commit()
-            flash(f"Department and section updated for {student.full_name}.", "success")
+            flash(f"Department updated for {student.full_name}.", "success")
         return redirect(url_for("students"))
 
     today = datetime.date.today()
@@ -403,7 +380,7 @@ def students():
         "gender": "", "academic_year": default_academic_year, "guardian_name": "",
         "guardian_relationship": "", "guardian_phone": "", "address": "",
         "class_name": "", "department": "", "trade": "", "level": "",
-        "class_section": "", "parent_id": "",
+        "parent_id": "",
     }
     if request.method == "POST":
         for field in form_values:
@@ -435,9 +412,8 @@ def students():
         class_name = request.form.get("class_name", "").strip()
         form_values["class_name"] = class_name
         department = form_values["department"]
-        level = form_values["level"]
         trade = form_values["trade"]
-        class_section = form_values["class_section"]
+        level = form_values["level"]
         parent_id = form_values["parent_id"] or None
         parent_record = db.session.get(User, int(parent_id)) if parent_id and parent_id.isdigit() else None
         existing_class_students = User.query.filter_by(role="student", class_name=class_name).all() if class_name else []
@@ -463,16 +439,14 @@ def students():
             flash("Choose a valid gender.", "danger")
         elif not valid_academic_year:
             flash("Enter a valid academic year, such as 2026-2027.", "danger")
-        elif (len(department) > 100 or len(class_section) > 50 or len(form_values["guardian_name"]) > 160
+        elif (len(department) > 100 or len(form_values["guardian_name"]) > 160
               or len(form_values["guardian_relationship"]) > 80 or len(guardian_phone) > 40
               or len(form_values["address"]) > 500):
-            flash("Department, section, guardian details, phone, or address exceed the allowed length.", "danger")
+            flash("Department, guardian details, phone, or address exceed the allowed length.", "danger")
         elif not valid_guardian_phone:
             flash("Enter a valid guardian phone number with at least 7 digits.", "danger")
-        elif trade not in PROGRAM_LEVELS or level not in PROGRAM_LEVELS.get(trade, []):
-            flash("Choose a valid programme, level, and class name.", "danger")
-        elif CLASS_TRADE_LEVEL.get(class_name) != (trade, level):
-            flash("Choose a class from the selected programme and level.", "danger")
+        elif not is_valid_academic_placement(department, trade, level, class_name):
+            flash("Choose a department, trade, level, and class from the available options.", "danger")
         elif class_scope_conflict:
             flash("That class name is already used by a different trade or level. Choose a unique class name.", "danger")
         elif User.query.filter_by(username=username).first():
@@ -488,7 +462,7 @@ def students():
         else:
             admission_number = generate_sdms_code()
             s = User(username=username, full_name=full_name, role="student", rfid_uid=uid,
-                     class_name=class_name, class_section=class_section or None,
+                     class_name=class_name,
                      department=department, level=level, trade=trade, sdms_code=admission_number,
                      date_of_birth=date_of_birth, gender=gender, academic_year=academic_year,
                      guardian_name=form_values["guardian_name"],
@@ -504,7 +478,7 @@ def students():
                     relationship=form_values["guardian_relationship"], status="verified",
                     verified_by_id=current_user.id, verified_at=now_string(),
                 ))
-            log_student_activity(current_user, s, "Student registration confirmed", f"Student account created in {department} / {trade} / {level} / {class_name} / {class_section or 'no section'} with admission number {admission_number}.")
+            log_student_activity(current_user, s, "Student registration confirmed", f"Student account created in {department} / {trade} / {level} / {class_name} with admission number {admission_number}.")
             if uid:
                 PendingCard.query.filter_by(uid=uid).delete()
                 log_student_activity(current_user, s, "RFID card assigned", f"Card {uid} assigned to the student.")
@@ -560,23 +534,11 @@ def students():
                     f"<input type='hidden' name='student_id' value='{student.id}'><button class='btn btn-sm btn-outline-success' type='submit'>Restore</button></form>"
                 )
         student_actions += "</div>"
-        placement_editor = (
-            f"<form method='post' class='d-flex flex-wrap gap-1'><input type='hidden' name='action' value='update_placement'>"
-            f"<input type='hidden' name='student_id' value='{student.id}'><input class='form-control form-control-sm' "
-            f"name='department' value='{safe_html(student.department or student.trade or '')}' maxlength='100' "
-            f"aria-label='Department for {safe_html(student.full_name)}' required>"
-            f"<input class='form-control form-control-sm' name='class_section' value='{safe_html(student.class_section or '')}' "
-            f"maxlength='50' placeholder='Section' aria-label='Class section for {safe_html(student.full_name)}'>"
-            "<button class='btn btn-sm btn-outline-success' type='submit'>Save</button></form>"
-            if can_register else
-            f"{safe_html(student.department or student.trade or '-')} / {safe_html(student.class_section or '-')}"
-        )
         student_row_items.append(
             f"<tr><td><a href='{profile_url}'>{safe_html(student.full_name)}</a><br><span class='pill'>{student_state}</span></td>"
             f"<td><code>{safe_html(student.sdms_code or '-')}</code></td><td>{safe_html(student.class_name or '-')}</td>"
             f"<td>{safe_html(student.department or student.trade or '-')}</td><td>{safe_html(student.trade or '-')}</td>"
-            f"<td>{safe_html(student.level or '-')}</td><td>{safe_html(student.class_section or '-')}</td>"
-            f"<td>{placement_editor}</td>"
+            f"<td>{safe_html(student.level or '-')}</td>"
             f"<td><code>{safe_html(student.rfid_uid or 'Not Assigned')}</code></td>"
             f"<td>{safe_html(student.parent.full_name if student.parent else 'None')}</td><td>{student_actions}</td></tr>"
         )
@@ -588,8 +550,6 @@ def students():
             f"<div><dt>Trade</dt><dd>{safe_html(student.trade or '-')}</dd></div>"
             f"<div><dt>Level</dt><dd>{safe_html(student.level or '-')}</dd></div>"
             f"<div><dt>Class</dt><dd>{safe_html(student.class_name or '-')}</dd></div>"
-            f"<div><dt>Class Section</dt><dd>{safe_html(student.class_section or '-')}</dd></div>"
-            f"<div><dt>Update Department / Section</dt><dd>{placement_editor}</dd></div>"
             f"<div><dt>Actions</dt><dd>{student_actions}</dd></div>"
             f"<div><dt>RFID UID</dt><dd><code>{safe_html(student.rfid_uid or 'Not Assigned')}</code></dd></div>"
             f"<div><dt>Parent</dt><dd>{safe_html(student.parent.full_name if student.parent else 'None')}</dd></div></dl></article>"
@@ -610,27 +570,11 @@ def students():
         f'<option value="{p.id}"{" selected" if str(p.id) == form_values["parent_id"] else ""}>{escape(p.full_name)}</option>'
         for p in parents
     )
-    trade_options = "".join(
-        f'<option value="{escape(trade)}"{" selected" if trade == form_values["trade"] else ""}>{escape(trade)}</option>'
-        for trade in TRADES
-    )
     gender_options = "".join(
         f'<option value="{gender}"{" selected" if gender == form_values["gender"] else ""}>{gender}</option>'
         for gender in ("Female", "Male", "Other")
     )
-    class_name_options = "".join(
-        f'<option value="{escape(class_name)}" data-trade="{escape(class_trade)}" data-level="{escape(class_level)}"{" selected" if class_name == form_values["class_name"] else ""}>{escape(class_name)}</option>'
-        for class_name, (class_trade, class_level) in CLASS_TRADE_LEVEL.items()
-    )
-    level_options = "".join(
-        f'<option value="{escape(level)}" data-trade="{escape(trade)}"{" selected" if level == form_values["level"] else ""}>{escape(level)}</option>'
-        for trade, levels in PROGRAM_LEVELS.items() for level in levels
-    )
-    known_departments = sorted(
-        {student.department or student.trade for student in all_students if student.department or student.trade},
-        key=str.casefold,
-    )
-    department_options = "".join(f'<option value="{escape(value)}">' for value in known_departments)
+    placement_fields = render_academic_placement_fields("registration", form_values)
     pending_section = f"""<section class="panel"><div class="student-registration-header"><h1>Student <span class="accent">Registration</span></h1><p class="muted">Tap an unassigned card on the connected RFID reader while this page is open. The UID is read automatically, fills the form, and is required to save. You can also select a card from the pending list.</p><a class="btn btn-sm btn-outline-secondary mt-3" href="#registered-students">View existing students</a></div><h3 class="mt-4 pending-section-title">Pending Scanned RFID Cards</h3><div class='table-responsive'><table class="table pending-cards-table"><thead><tr><th>UID</th><th>Last Scanned</th><th>Action</th></tr></thead><tbody id='pending-rfid-rows'>{pending_rows or '<tr data-empty-row><td colspan="3" class="muted">No unregistered RFID cards are pending.</td></tr>'}</tbody></table></div><dialog id='pending-rfid-details' class='student-review-dialog'><h2>Pending RFID Card</h2><dl class='student-review-details'><dt>UID</dt><dd id='pending-card-view-uid'></dd><dt>First scanned</dt><dd id='pending-card-view-first'></dd><dt>Last scanned</dt><dd id='pending-card-view-last'></dd></dl><div class='student-review-actions'><button type='button' class='btn btn-outline-secondary' data-close-pending-card>Close</button></div></dialog></section>""" if can_register else ""
     registration_form = f"""<section class="panel"><h2>Register New Student</h2><form id="student-registration-form" method="post" class="row g-3 student-registration-form">
 <div class="col-md-6"><label class="form-label">Student Full Name</label><input name="full_name" maxlength="160" class="form-control" value="{escape(form_values['full_name'])}" required></div>
@@ -639,11 +583,7 @@ def students():
 <div class="col-md-4"><label class="form-label">Username</label><input name="username" maxlength="80" class="form-control" value="{escape(form_values['username'])}" required></div>
 <div class="col-md-4"><label class="form-label">Temporary Password (8+ chars)</label><input name="password" type="password" minlength="8" class="form-control" required></div>
 <div class="col-md-6"><label class="form-label" for="uid">RFID Card UID</label><input id="uid" name="uid" class="form-control" value="{escape(form_values['uid'])}" placeholder="Waiting for card scan" autocomplete="off" required readonly><small id="rfid-scan-status" class="form-text muted" aria-live="polite">Waiting for the connected reader. The UID fills automatically when you scan a card.</small></div>
-<div class="col-md-4"><label class="form-label">Department</label><input name="department" list="student-departments" maxlength="100" class="form-control" value="{escape(form_values['department'])}" required><datalist id="student-departments">{department_options}</datalist></div>
-<div class="col-md-4"><label class="form-label">Trade</label><select name="trade" class="form-select trade-select" required><option value="">Choose trade...</option>{trade_options}</select></div>
-<div class="col-md-4"><label class="form-label">Level</label><select name="level" class="form-select level-select" required disabled><option value="">Choose trade first...</option>{level_options}</select></div>
-<div class="col-md-4"><label class="form-label">Class</label><select id="class-choice" class="form-select" required disabled><option value="">Choose programme and level first...</option>{class_name_options}</select><input type="hidden" name="class_name" id="class-name" value="{escape(form_values['class_name'])}" data-initial-class="{escape(form_values['class_name'])}"></div>
-<div class="col-md-4"><label class="form-label">Class Section</label><input name="class_section" maxlength="50" class="form-control" value="{escape(form_values['class_section'])}" placeholder="A, B, Morning (optional)"></div>
+{placement_fields}
 <div class="col-md-4"><label class="form-label">Academic Year</label><input name="academic_year" maxlength="9" pattern="[0-9]{{4}}-[0-9]{{4}}" placeholder="2026-2027" class="form-control" value="{escape(form_values['academic_year'])}" required></div>
 <div class="col-md-4"><label class="form-label">Guardian Full Name</label><input name="guardian_name" maxlength="160" class="form-control" value="{escape(form_values['guardian_name'])}" required></div>
 <div class="col-md-4"><label class="form-label">Relationship to Student</label><input name="guardian_relationship" maxlength="80" class="form-control" value="{escape(form_values['guardian_relationship'])}" placeholder="Parent, aunt, uncle..." required></div>
@@ -674,7 +614,7 @@ def students():
     body = f"""<style>.student-registration-header{{margin-bottom:20px}}.student-registration-header h1{{font-size:clamp(1.5rem,2.4vw,2rem)}}.student-registration-header p{{max-width:850px;font-size:1rem;line-height:1.5;margin-bottom:0}}.pending-section-title{{font-size:1.25rem!important}}.pending-cards-table{{width:100%;margin-bottom:0}}.student-registration-form{{row-gap:1.25rem!important}}.student-registration-form .form-label{{display:block;font-weight:650;margin-bottom:.45rem}}.student-registration-form .form-control,.student-registration-form .form-select{{min-height:48px}}.student-registration-form h2{{margin-bottom:.25rem}}.student-review-dialog{{width:min(620px,calc(100vw - 28px));max-height:85vh;overflow:auto;border:1px solid var(--border);border-radius:16px;padding:22px;background:var(--card);color:var(--text)}}.student-review-dialog::backdrop{{background:rgba(5,10,15,.68)}}.student-review-dialog h2{{font-size:1.3rem;margin-bottom:8px}}.student-review-details{{display:grid;grid-template-columns:minmax(120px,.4fr) minmax(0,1fr);gap:8px 16px;margin:18px 0}}.student-review-details dt{{font-weight:700;color:var(--muted)}}.student-review-details dd{{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}}.student-review-actions{{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}}@media(max-width:480px){{.student-review-dialog{{padding:16px}}.student-review-details{{grid-template-columns:1fr;gap:2px 0}}.student-review-details dd{{margin-bottom:8px}}}}</style>{status_filters}{pending_section}
 {registration_form}
 {bulk_archive_form}
-<section class="panel registered-students-panel" id="registered-students"><h2>Registered Students</h2><p class="muted">View the full profile, edit student details, or delete the account from active records while retaining attendance and academic history.</p><div class="table-responsive registered-students-table"><table class="table"><thead><tr><th>Name / Status</th><th>Admission Number</th><th>Class</th><th>Department</th><th>Trade</th><th>Level</th><th>Class Section</th><th>Update Department / Section</th><th>RFID UID</th><th>Parent</th><th>Actions</th></tr></thead><tbody>{student_rows or '<tr><td colspan="11" class="muted">No students match this status.</td></tr>'}</tbody></table></div><div class="registered-student-cards">{student_cards or '<p class="muted mb-0">No students match this status.</p>'}</div></section>"""
+<section class="panel registered-students-panel" id="registered-students"><h2>Registered Students</h2><p class="muted">View the full profile, edit student details, or delete the account from active records while retaining attendance and academic history.</p><div class="table-responsive registered-students-table"><table class="table"><thead><tr><th>Name / Status</th><th>Admission Number</th><th>Class</th><th>Department</th><th>Trade</th><th>Level</th><th>RFID UID</th><th>Parent</th><th>Actions</th></tr></thead><tbody>{student_rows or '<tr><td colspan="9" class="muted">No students match this status.</td></tr>'}</tbody></table></div><div class="registered-student-cards">{student_cards or '<p class="muted mb-0">No students match this status.</p>'}</div></section>"""
     body = """<style>
 .student-registration-picker{position:relative;min-width:0;width:100%}
 .student-registration-picker-source{display:none!important}
@@ -805,15 +745,6 @@ finally{polling=false;}
 refreshPendingCards();window.setInterval(refreshPendingCards,2000);
 })();</script>"""
     body += """<script>(()=>{
-document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
-const field=document.getElementById('class-name'),choice=document.getElementById('class-choice');
-if(!field||!choice)return;
-const initial=field.dataset.initialClass||'';if(!initial)return;
-if([...choice.options].some(option=>option.value===initial)){choice.value=initial;choice.dispatchEvent(new Event('change',{bubbles:true}));}
-else{choice.value='';field.value='';}
-},0));
-})();</script>"""
-    body += """<script>(()=>{
 const form=document.querySelector('.student-registration-form');
 const dialog=document.getElementById('student-review-dialog');
 const details=document.getElementById('student-review-details');
@@ -825,10 +756,10 @@ if(!field)return '—';
 if(field.tagName==='SELECT')return field.value?(field.selectedOptions[0]?.textContent.trim()||field.value):'—';
 return String(field.value||'').trim()||'—';
 };
-const rows=[
+    const rows=[
 ['Student full name','full_name'],['Date of birth','date_of_birth'],['Gender','gender'],
 ['Username','username'],['RFID card UID','uid'],['Department','department'],['Trade','trade'],
-['Level','level'],['Class','class_name'],['Class section','class_section'],
+['Level','level'],['Class','class_name'],
 ['Academic year','academic_year'],['Guardian full name','guardian_name'],
 ['Relationship to student','guardian_relationship'],['Guardian phone','guardian_phone'],
 ['Home address','address'],['Linked parent','parent_id']
@@ -887,7 +818,6 @@ def _registration_document_html(student, artifact, auto_print=False):
             ("Trade", student.trade or "-"),
             ("Level", student.level or "-"),
             ("Class", student.class_name or "-"),
-            ("Class section", student.class_section or "-"),
             ("Guardian", student.guardian_name or "-"),
             ("Relationship to student", student.guardian_relationship or "-"),
             ("Guardian phone", student.guardian_phone or "-"),
@@ -930,7 +860,6 @@ def student_registration_confirmation(student_id):
         ("Trade", student.trade or "-"),
         ("Level", student.level or "-"),
         ("Class", student.class_name or "-"),
-        ("Class section", student.class_section or "-"),
         ("RFID card UID", student.rfid_uid or "-"),
         ("Guardian", student.guardian_name or "-"),
     ]

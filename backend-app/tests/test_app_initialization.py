@@ -21,5 +21,14 @@ def test_create_app_initializes_fresh_database():
         assert "user" in table_names
         assert School.query.count() == 1
         assert SchoolClass.query.count() > 0
+        assert "class_section" not in {
+            column["name"] for column in inspect(db.engine).get_columns("user")
+        }
+        assert "desired_section" not in {
+            column["name"] for column in inspect(db.engine).get_columns("admission_applicant")
+        }
+        assert "section" not in {
+            column["name"] for column in inspect(db.engine).get_columns("school_class")
+        }
 
         db.drop_all()

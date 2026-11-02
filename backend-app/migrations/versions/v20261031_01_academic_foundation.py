@@ -52,14 +52,9 @@ def seed_and_backfill():
             trades[trade_name] = trade
             for class_name in class_names:
                 level = class_name.split(" ", 1)[0]
-                section = None
-                if class_name.endswith(" A") or " A" in class_name:
-                    section = "A"
-                elif class_name.endswith(" B") or " B" in class_name:
-                    section = "B"
                 cls = SchoolClass.query.filter_by(trade_id=trade.id, name=class_name).first()
                 if not cls:
-                    cls = SchoolClass(trade_id=trade.id, name=class_name, level=level, section=section,
+                    cls = SchoolClass(trade_id=trade.id, name=class_name, level=level,
                                       code=f"{dept.id}-{trade.id}-{class_name}")
                     db.session.add(cls); db.session.flush()
                 classes[class_name.strip().upper()] = (dept, trade, cls)
@@ -70,12 +65,8 @@ def seed_and_backfill():
         year_name = (student.academic_year or "").strip()
         if year_name and not current_year_name:
             current_year_name = year_name
-        class_candidates = [student.class_name, student.class_section]
+        class_candidates = [student.class_name, student.level]
         label = next((x.strip().upper() for x in class_candidates if x and x.strip()), None)
-        if label not in classes:
-            # Some legacy records store only level + class section.
-            legacy = " ".join(x for x in [student.level, student.class_section] if x).strip().upper()
-            label = legacy if legacy in classes else label
         if not label or label not in classes:
             continue
         if not year_name:

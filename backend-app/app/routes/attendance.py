@@ -95,7 +95,6 @@ def attendance():
         ("trade", "Trade", lambda student: (student.trade or "").strip()),
         ("level", "Level", _student_level),
         ("class_name", "Class", lambda student: (student.class_name or "").strip()),
-        ("class_section", "Class Section", lambda student: (student.class_section or "").strip()),
     )
     no_value = "__not_specified__"
     selected_filters = {}
@@ -168,7 +167,6 @@ def attendance():
         department = (student.department or student.trade or "").strip() or "Not specified"
         trade = (student.trade or inferred_trade or "").strip() or "Not specified"
         level = (student.level or inferred_level or "").strip() or "Not specified"
-        section = (student.class_section or "").strip() or "Not specified"
         status = status_by_student.get(student.id, "unmarked")
         status_key = {
             "present": "present",
@@ -179,11 +177,10 @@ def attendance():
         }.get(status, "unmarked")
 
         for category_key in (
-            (department, None, None, None, None),
-            (department, trade, None, None, None),
-            (department, trade, level, None, None),
-            (department, trade, level, class_name, None),
-            (department, trade, level, class_name, section),
+            (department, None, None, None),
+            (department, trade, None, None),
+            (department, trade, level, None),
+            (department, trade, level, class_name),
         ):
             counts = totals_by_category.setdefault(category_key, {
                 "enrolled": 0,
@@ -196,11 +193,11 @@ def attendance():
             counts["enrolled"] += 1
             counts[status_key] += 1
 
-    def totals_row(department, trade, level, class_name, section, counts, emphasis=False):
+    def totals_row(department, trade, level, class_name, counts, emphasis=False):
         row_class = " class='fw-semibold'" if emphasis else ""
         return (
             f"<tr{row_class}><td>{escape(department)}</td><td>{escape(trade)}</td>"
-            f"<td>{escape(level)}</td><td>{escape(class_name)}</td><td>{escape(section)}</td>"
+            f"<td>{escape(level)}</td><td>{escape(class_name)}</td>"
             f"<td>{counts['enrolled']}</td>"
             f"<td>{counts['present']}</td><td>{counts['late']}</td>"
             f"<td>{counts['absent']}</td><td>{counts['permission']}</td>"
@@ -211,8 +208,8 @@ def attendance():
     departments = sorted({key[0] for key in totals_by_category}, key=str.casefold)
     for department in departments:
         attendance_total_rows.append(totals_row(
-            department, "All trades", "All levels", "All classes", "All sections",
-            totals_by_category[(department, None, None, None, None)],
+            department, "All trades", "All levels", "All classes",
+            totals_by_category[(department, None, None, None)],
             emphasis=True,
         ))
         trades = sorted(
@@ -221,8 +218,8 @@ def attendance():
         )
         for trade in trades:
             attendance_total_rows.append(totals_row(
-                department, trade, "All levels", "All classes", "All sections",
-                totals_by_category[(department, trade, None, None, None)],
+                department, trade, "All levels", "All classes",
+                totals_by_category[(department, trade, None, None)],
                 emphasis=True,
             ))
             levels = sorted(
@@ -234,8 +231,8 @@ def attendance():
             )
             for level in levels:
                 attendance_total_rows.append(totals_row(
-                    department, trade, level, "All classes", "All sections",
-                    totals_by_category[(department, trade, level, None, None)],
+                    department, trade, level, "All classes",
+                    totals_by_category[(department, trade, level, None)],
                     emphasis=True,
                 ))
                 classes = sorted(
@@ -247,31 +244,18 @@ def attendance():
                 )
                 for class_name in classes:
                     attendance_total_rows.append(totals_row(
-                        department, trade, level, class_name, "All sections",
-                        totals_by_category[(department, trade, level, class_name, None)],
+                        department, trade, level, class_name,
+                        totals_by_category[(department, trade, level, class_name)],
                         emphasis=True,
                     ))
-                    sections = sorted(
-                        {
-                            key[4] for key in totals_by_category
-                            if key[0] == department and key[1] == trade and key[2] == level
-                            and key[3] == class_name and key[4] is not None
-                        },
-                        key=str.casefold,
-                    )
-                    for section in sections:
-                        attendance_total_rows.append(totals_row(
-                            department, trade, level, class_name, section,
-                            totals_by_category[(department, trade, level, class_name, section)],
-                        ))
     if departments:
         grand_total = {
-            status: sum(totals_by_category[(department, None, None, None, None)][status]
+            status: sum(totals_by_category[(department, None, None, None)][status]
                         for department in departments)
             for status in ("enrolled", "present", "late", "absent", "permission", "unmarked")
         }
         attendance_total_rows.append(totals_row(
-            "All departments", "All trades", "All levels", "All classes", "All sections",
+            "All departments", "All trades", "All levels", "All classes",
             grand_total,
             emphasis=True,
         ))
@@ -295,7 +279,7 @@ def attendance():
                 arrival_time = "-"
             roster_rows.append(
                 f"<tr><td><a href='/student/profile/{student.id}'>{escape(student.full_name)}</a></td>"
-                f"<td>{escape(student.class_name or '-')} / {escape(student.class_section or '-')}</td>"
+                f"<td>{escape(student.class_name or '-')}</td>"
                 f"<td>{status_markup}</td><td>{arrival_time}</td></tr>"
             )
 
@@ -322,7 +306,6 @@ def attendance():
         f"<td>{escape(record.student.trade if record.student else '-')}</td>"
         f"<td>{escape(record.student.level if record.student else '-')}</td>"
         f"<td>{escape(record.student.class_name if record.student and record.student.class_name else '-')}</td>"
-        f"<td>{escape(record.student.class_section if record.student and record.student.class_section else '-')}</td>"
         f"<td><span class='pill'>{escape(record.status)}</span></td>"
         f"<td>{escape(_scan_datetime(record.day, record.arrival_time))}</td>"
         f"<td>{escape(_scan_datetime(record.day, record.afternoon_time))}</td>"
@@ -339,42 +322,41 @@ def attendance():
             f"<td>{escape(a.student.trade if a.student else '-')}</td>"
             f"<td>{escape(a.student.level if a.student else '-')}</td>"
             f"<td>{escape(a.student.class_name if a.student and a.student.class_name else '-')}</td>"
-            f"<td>{escape(a.student.class_section if a.student and a.student.class_section else '-')}</td>"
             f"<td>{status_cell}</td><td>{escape(_scan_datetime(a.day, a.arrival_time))}</td>"
             f"<td>{escape(_scan_datetime(a.day, a.afternoon_time))}</td><td>{escape(a.source or '-')}</td></tr>"
         )
     body = f"""<section class="panel"><h1>Attendance <span class="accent">Register</span></h1><p class="muted">Attendance is recorded automatically by RFID scans using the server clock. Scans within the configured Present grace after the allowed time ends are Present; later scans through 15 minutes after are Late. Students with no scan by the end of the 15-minute grace period are marked Absent when the ESP32 polls, staff open this page, or the scheduled attendance reconciliation command runs. Scans after the grace period are denied; the separately configured afternoon scan window remains available. Attendance statuses and times are read-only here. Class attendance updates are sent to assigned teachers, matron, patron, discipline staff, and school leadership.</p><div class="grid mb-4"><div class="stat"><div class="stat-value">{len(rfid_records)}</div><div class="stat-label">RFID Scans Today</div></div><div class="stat"><div class="stat-value">{len(late_records)}</div><div class="stat-label">Late Students Today</div></div><div class="stat"><div class="stat-value">{len(absent_records)}</div><div class="stat-label">Absences Today</div></div></div></section>{teacher_roster_section}<section class="panel"><h2>Attendance Totals by Department / Trade and Class</h2><p class="muted">Showing {escape(level_group_labels[selected_level_group])} for {today}. Totals follow the registered student structure: Trade / Department → Level → Class. Students without a recorded status are counted as Not marked.</p>{attendance_filter}<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Department / Trade</th><th>Level</th><th>Class</th><th>Enrolled</th><th>Present</th><th>Late</th><th>Absent</th><th>Permission</th><th>Not marked</th></tr></thead><tbody>{''.join(attendance_total_rows) or '<tr><td colspan="9" class="muted">No students are registered in this attendance scope.</td></tr>'}</tbody></table></div></section><section class="panel"><h2>Today's Attendance Details</h2><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Student</th><th>Class</th><th>Status</th><th>Morning Scan Date/Time</th><th>Afternoon Scan Date/Time</th><th>Source</th></tr></thead><tbody>{today_rows or '<tr><td colspan="6" class="muted">No attendance records recorded today.</td></tr>'}</tbody></table></div><h2 class="mt-4">Attendance History</h2><div class="table-responsive"><table class="table align-middle attendance-history"><thead><tr><th>Date</th><th>Student Name</th><th>Class</th><th>Status</th><th>Morning Scan Date/Time</th><th>Afternoon Scan Date/Time</th><th>Source</th></tr></thead><tbody>{''.join(rows) or '<tr><td colspan="7" class="muted">No attendance records found.</td></tr>'}</tbody></table></div><a class="btn btn-outline-success mt-3" href="/attendance/export" style="border-color:var(--accent);color:var(--text)">Download Attendance Excel</a></section>"""
     body = body.replace(
         "Trade / Department â†’ Level â†’ Class.",
-        "Department â†’ Trade â†’ Level â†’ Class â†’ Section.",
+        "Department â†’ Trade â†’ Level â†’ Class.",
     )
     body = body.replace(
         "Attendance Totals by Department / Trade and Class",
-        "Attendance Totals by Department, Trade, Level, Class and Section",
+        "Attendance Totals by Department, Trade, Level, Class",
     )
     body = re.sub(
         r"Totals follow the registered student structure:[^<]*?Students without",
-        "Totals follow the registered student structure: Department / Trade / Level / Class / Section. Students without",
+        "Totals follow the registered student structure: Department / Trade / Level / Class. Students without",
         body,
         count=1,
     )
     body = body.replace(
         "<th>Department / Trade</th><th>Level</th><th>Class</th>",
-        "<th>Department</th><th>Trade</th><th>Level</th><th>Class</th><th>Class Section</th>",
+        "<th>Department</th><th>Trade</th><th>Level</th><th>Class</th>",
     ).replace('colspan="9" class="muted">No students are registered',
-              'colspan="11" class="muted">No students are registered')
+              'colspan="8" class="muted">No students are registered')
     body = body.replace(
         "<th>Student</th><th>Class</th><th>Status</th><th>Morning Scan Date/Time</th>",
-        "<th>Student</th><th>Department</th><th>Trade</th><th>Level</th><th>Class</th><th>Section</th>"
-        "<th>Status</th><th>Morning Scan Date/Time</th>",
+        "<th>Student</th><th>Department</th><th>Trade</th><th>Level</th>"
+        "<th>Class</th><th>Status</th><th>Morning Scan Date/Time</th>",
     ).replace('colspan="6" class="muted">No attendance records recorded today',
-              'colspan="10" class="muted">No attendance records recorded today')
+              'colspan="9" class="muted">No attendance records recorded today')
     body = body.replace(
         "<th>Date</th><th>Student Name</th><th>Class</th><th>Status</th><th>Morning Scan Date/Time</th>",
         "<th>Date</th><th>Student Name</th><th>Department</th><th>Trade</th><th>Level</th>"
-        "<th>Class</th><th>Section</th><th>Status</th><th>Morning Scan Date/Time</th>",
+        "<th>Class</th><th>Status</th><th>Morning Scan Date/Time</th>",
     ).replace('colspan="7" class="muted">No attendance records found',
-              'colspan="11" class="muted">No attendance records found')
+              'colspan="9" class="muted">No attendance records found')
     return page("Attendance", body, "teacher")
 
 def attendance_times():
@@ -435,7 +417,7 @@ def export_attendance():
     ws = wb.active
     ws.title = "Attendance"
     ws.append([
-        "Date", "Student Name", "Department", "Trade", "Level", "Class", "Class Section",
+        "Date", "Student Name", "Department", "Trade", "Level", "Class",
         "Status", "Morning Scan Date/Time", "Afternoon Scan Date/Time", "Source",
     ])
     query = Attendance.query.join(User, Attendance.student_id == User.id)
@@ -451,7 +433,6 @@ def export_attendance():
             r.student.trade if r.student else "",
             r.student.level if r.student else "",
             r.student.class_name if r.student else "",
-            r.student.class_section if r.student else "",
             r.status,
             _scan_datetime(r.day, r.arrival_time) if r.arrival_time else "",
             _scan_datetime(r.day, r.afternoon_time) if r.afternoon_time else "",

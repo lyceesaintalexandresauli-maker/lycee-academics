@@ -10,8 +10,6 @@ def upgrade(connection):
         user_columns = {column["name"] for column in inspector.get_columns("user")}
         if "department" not in user_columns:
             connection.execute(text('ALTER TABLE "user" ADD COLUMN department VARCHAR(100)'))
-        if "class_section" not in user_columns:
-            connection.execute(text('ALTER TABLE "user" ADD COLUMN class_section VARCHAR(50)'))
         if "trade" in user_columns:
             connection.execute(text(
                 'UPDATE "user" SET department = trade '
@@ -26,10 +24,6 @@ def upgrade(connection):
         if "desired_department" not in applicant_columns:
             connection.execute(text(
                 "ALTER TABLE admission_applicant ADD COLUMN desired_department VARCHAR(100)"
-            ))
-        if "desired_section" not in applicant_columns:
-            connection.execute(text(
-                "ALTER TABLE admission_applicant ADD COLUMN desired_section VARCHAR(50)"
             ))
         if "desired_trade" in applicant_columns:
             connection.execute(text(

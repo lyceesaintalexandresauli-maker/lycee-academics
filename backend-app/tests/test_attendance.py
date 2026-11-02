@@ -329,12 +329,10 @@ def test_attendance_totals_are_grouped_by_department_level_and_class(app):
         present_student.department = "Creative Arts"
         present_student.trade = "Fashion Design"
         present_student.level = "L4"
-        present_student.class_section = "A"
         late_student = add_student("summary_late", "Summary Late", "L4 Fashion Design")
         late_student.department = "Creative Arts"
         late_student.trade = "Fashion Design"
         late_student.level = "L4"
-        late_student.class_section = "B"
         db.session.add_all([
             Attendance(student_id=present_student.id, day=today, status="Present", source="RFID"),
             Attendance(student_id=late_student.id, day=today, status="Late", source="RFID"),
@@ -359,37 +357,35 @@ def test_attendance_totals_are_grouped_by_department_level_and_class(app):
     response = client.get("/attendance")
 
     assert response.status_code == 200
-    assert b"Attendance Totals by Department, Trade, Level, Class and Section" in response.data
-    assert b"<th>Department</th><th>Trade</th><th>Level</th><th>Class</th><th>Class Section</th>" in response.data
+    assert b"Attendance Totals by Department, Trade, Level, Class" in response.data
+    assert b"<th>Department</th><th>Trade</th><th>Level</th><th>Class</th>" in response.data
     assert (
         b"<td>Creative Arts</td><td>Fashion Design</td><td>All levels</td>"
-        b"<td>All classes</td><td>All sections</td><td>2</td><td>1</td><td>1</td>"
+        b"<td>All classes</td><td>2</td><td>1</td><td>1</td>"
         b"<td>0</td><td>0</td><td>0</td>"
     ) in response.data
     assert (
         b"<td>Creative Arts</td><td>Fashion Design</td><td>L4</td>"
-        b"<td>L4 Fashion Design</td><td>All sections</td><td>2</td><td>1</td><td>1</td>"
+        b"<td>L4 Fashion Design</td><td>2</td><td>1</td><td>1</td>"
         b"<td>0</td><td>0</td><td>0</td>"
     ) in response.data
     assert (
         b"<td>Creative Arts</td><td>Fashion Design</td><td>L4</td>"
-        b"<td>L4 Fashion Design</td><td>A</td>"
+        b"<td>L4 Fashion Design</td>"
     ) in response.data
 
 
-def test_attendance_filters_department_trade_level_class_and_section(app):
+def test_attendance_filters_department_trade_level_class(app):
     today = date.today().isoformat()
     with app.app_context():
         selected = add_student("filtered_student", "Filtered Student", "L4 Software Development A")
         selected.department = "Technology"
         selected.trade = "ICT and Multimedia"
         selected.level = "L4"
-        selected.class_section = "A"
         other = add_student("other_filter_student", "Other Filter Student", "L4 Fashion Design")
         other.department = "Creative Arts"
         other.trade = "Fashion Design"
         other.level = "L4"
-        other.class_section = "B"
         db.session.add_all([
             Attendance(student_id=selected.id, day=today, status="Present", source="RFID"),
             Attendance(student_id=other.id, day=today, status="Absent", source="System"),
@@ -407,14 +403,13 @@ def test_attendance_filters_department_trade_level_class_and_section(app):
 
     response = client.get(
         "/attendance?department=Technology&trade=ICT+and+Multimedia&level=L4&"
-        "class_name=L4+Software+Development+A&class_section=A"
+        "class_name=L4+Software+Development+A"
     )
 
     assert response.status_code == 200
     assert b"Filtered Student" in response.data
     assert b"Other Filter Student" not in response.data
     assert b"Technology" in response.data
-    assert b"Class Section" in response.data
 
 
 def test_teacher_attendance_totals_only_include_assigned_classes(app):

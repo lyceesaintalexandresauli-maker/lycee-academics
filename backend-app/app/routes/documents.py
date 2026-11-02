@@ -23,8 +23,7 @@ def _student_option_class(student):
         return "No class"
     class_parts = class_name.split()
     if class_parts[0] in {"L3", "L4", "L5", "S4", "S5", "S6"}:
-        section = class_parts[-1] if class_parts[-1] in {"A", "B"} else ""
-        return f"{class_parts[0]} {section}".strip()
+        return class_parts[0]
     return class_name
 
 
