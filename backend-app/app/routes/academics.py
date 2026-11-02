@@ -15,6 +15,7 @@ from app.extensions import db
 from app.models import User, Attendance, PendingCard, FeeTransaction, Book, DisciplineCase, SchoolMessage, Grade, TimetableEntry, DayScheduleEntry, Setting, AcademicSubject, SyllabusCoverage, LessonPlan, ReportCardApproval
 from app.utils.constants import *
 from app.utils.academic_placement import (
+    get_academic_placement,
     is_valid_academic_placement,
     render_academic_placement_fields,
 )
@@ -24,28 +25,20 @@ from app.utils.rendering import page
 from app.utils.decorators import permission_for
 
 
-def _available_class_names():
-    registered = User.query.filter(
-        User.role == "student",
-        User.class_name.isnot(None),
-    ).with_entities(User.class_name).distinct().all()
-    return sorted(
-        set(CLASS_NAMES) | {name for (name,) in registered if name},
-        key=str.casefold,
-    )
-
-
 def timetable():
     if request.method == "POST" and current_user.role not in {"master_admin", "secretary", "patron", "matron"}:
         abort(403)
     if request.method == "POST":
         class_name = request.form.get("class_name", "").strip()
+        department = request.form.get("department", "").strip()
+        trade = request.form.get("trade", "").strip()
+        level = request.form.get("level", "").strip()
         day_of_week = request.form.get("day_of_week", "").strip()
         time_slot = request.form.get("time_slot", "").strip()
         subject = request.form.get("subject", "").strip()
         teacher_name = request.form.get("teacher_name", "").strip()
         assigned_teacher = User.query.filter_by(role="teacher", full_name=teacher_name, class_name=class_name).first() if teacher_name else None
-        if not class_name or not day_of_week or not subject:
+        if not is_valid_academic_placement(department, trade, level, class_name) or not day_of_week or not subject:
             flash("Class name, day, and subject are required.", "danger")
         elif teacher_name and not assigned_teacher:
             flash("Choose a teacher assigned to this class.", "danger")
@@ -80,7 +73,11 @@ def timetable():
         intro = "Your academic timetable."
     else:
         intro = "Class schedules and lesson times."
-    timetable_form = f"""<form method="post" class="row g-3"><div class="col-md-4"><label>Class Name</label><input class="form-control" name="class_name" required></div><div class="col-md-4"><label>Day of Week</label><select class="form-select" name="day_of_week"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option></select></div><div class="col-md-4"><label>Time Slot</label><input class="form-control" name="time_slot" placeholder="e.g. 08:00 - 09:20"></div><div class="col-md-6"><label>Subject / Lesson</label><input class="form-control" name="subject" required></div><div class="col-md-6"><label>Assigned Teacher</label><select class="form-select" name="teacher_name"><option value="">Choose teacher...</option>{teacher_options}</select></div><div class="col-12"><button class="btn btn-accent">Add Timetable Entry</button></div></form>""" if can_manage else ""
+    allowed_classes = {current_user.class_name} if current_user.role in {"patron", "matron"} else None
+    placement_values = get_academic_placement(current_user.class_name) if allowed_classes else None
+    placement_fields = render_academic_placement_fields(
+        "timetable", placement_values, class_names=allowed_classes)
+    timetable_form = f"""<form method="post" class="row g-3">{placement_fields}<div class="col-md-4"><label>Day of Week</label><select class="form-select" name="day_of_week"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option></select></div><div class="col-md-4"><label>Time Slot</label><input class="form-control" name="time_slot" placeholder="e.g. 08:00 - 09:20"></div><div class="col-md-6"><label>Subject / Lesson</label><input class="form-control" name="subject" required></div><div class="col-md-6"><label>Assigned Teacher</label><select class="form-select" name="teacher_name"><option value="">Choose teacher...</option>{teacher_options}</select></div><div class="col-12"><button class="btn btn-accent">Add Timetable Entry</button></div></form>""" if can_manage else ""
     body = f"""<section class="panel"><h1>Class <span class="accent">Timetable</span></h1><p class="muted">{intro}</p>{timetable_form}</section>
 <section class="panel"><h2>{'Existing Timetable' if can_manage else 'Academic Timetable'}</h2><div class="table-responsive"><table class="table"><tr><th>Class</th><th>Day</th><th>Time Slot</th><th>Subject</th><th>Teacher</th></tr>{rows or '<tr><td colspan="5" class="muted">No timetable has been published for the relevant class yet.</td></tr>'}</table></div></section>"""
     return page("Timetable", body, "teacher")
@@ -102,7 +99,11 @@ def day_schedule():
             return redirect(url_for("day_schedule"))
 
         raw_date = request.form.get("schedule_date", "").strip()
+        department = request.form.get("department", "").strip()
+        trade = request.form.get("trade", "").strip()
+        level = request.form.get("level", "").strip()
         class_name = request.form.get("class_name", "").strip() or None
+        has_placement = any((department, trade, level, class_name))
         activity = request.form.get("activity", "").strip()
         start_time = request.form.get("start_time", "").strip()
         end_time = request.form.get("end_time", "").strip()
@@ -113,6 +114,8 @@ def day_schedule():
             schedule_date = None
         if not schedule_date or not activity:
             flash("A valid date and activity are required.", "danger")
+        elif has_placement and not is_valid_academic_placement(department, trade, level, class_name):
+            flash("Choose a valid department, trade, level, and class, or leave all placement fields blank for a school-wide activity.", "danger")
         elif current_user.role in {"patron", "matron"} and (not current_user.class_name or class_name != current_user.class_name):
             abort(403)
         else:
@@ -160,10 +163,23 @@ def day_schedule():
         intro = "Published school activities for your class, plus school-wide events."
     else:
         intro = "Plan and publish date-specific activities for a class or the whole school."
-    class_field = "<div class='col-md-6'><label>Class (leave blank for all school)</label><input class='form-control' name='class_name' placeholder='e.g. L3 SWD'></div>"
-    if current_user.role in {"patron", "matron"}:
-        class_field = f"<input type='hidden' name='class_name' value='{escape(current_user.class_name or '')}'><div class='col-md-6'><label>Assigned class</label><input class='form-control' value='{escape(current_user.class_name or 'No class assigned')}' disabled></div>"
-    form = f"""<section class='panel'><h1>Day <span class='accent'>Schedule</span></h1><p class='muted'>{intro}</p>{f'''<form method="post" class="row g-3"><div class="col-md-6"><label>Date</label><input class="form-control" type="date" name="schedule_date" value="{datetime.date.today().isoformat()}" required></div>{class_field}<div class="col-md-6"><label>Start Time</label><input class="form-control" type="time" name="start_time"></div><div class="col-md-6"><label>End Time</label><input class="form-control" type="time" name="end_time"></div><div class="col-12"><label>Activity</label><input class="form-control" name="activity" required></div><div class="col-12"><label>Details</label><textarea class="form-control" name="details" rows="2"></textarea></div><div class="col-12"><label><input type="checkbox" name="is_published" value="yes"> Publish now</label></div><div class="col-12"><button class="btn btn-accent">Save Activity</button></div></form>''' if can_manage else ''}</section>"""
+    schedule_placement_values = (
+        get_academic_placement(current_user.class_name)
+        if current_user.role in {"patron", "matron"}
+        else None
+    )
+    schedule_placement = render_academic_placement_fields(
+        "day-schedule",
+        schedule_placement_values,
+        class_names={current_user.class_name} if schedule_placement_values else None,
+        required=current_user.role in {"patron", "matron"},
+    )
+    placement_label = (
+        "<div class='col-12'><p class='muted mb-0'>Class placement (leave all fields blank for a school-wide activity)</p></div>"
+        if current_user.role not in {"patron", "matron"}
+        else ""
+    )
+    form = f"""<section class='panel'><h1>Day <span class='accent'>Schedule</span></h1><p class='muted'>{intro}</p>{f'''<form method="post" class="row g-3"><div class="col-md-6"><label>Date</label><input class="form-control" type="date" name="schedule_date" value="{datetime.date.today().isoformat()}" required></div>{placement_label}{schedule_placement}<div class="col-md-6"><label>Start Time</label><input class="form-control" type="time" name="start_time"></div><div class="col-md-6"><label>End Time</label><input class="form-control" type="time" name="end_time"></div><div class="col-12"><label>Activity</label><input class="form-control" name="activity" required></div><div class="col-12"><label>Details</label><textarea class="form-control" name="details" rows="2"></textarea></div><div class="col-12"><label><input type="checkbox" name="is_published" value="yes"> Publish now</label></div><div class="col-12"><button class="btn btn-accent">Save Activity</button></div></form>''' if can_manage else ''}</section>"""
     rows_html = "".join(rows) or f"<tr><td colspan='5' class='muted'>No published day schedule activities are available{ ' for your linked children' if current_user.role == 'parent' else ''}.</td></tr>"
     body = form + f"<section class='panel'><h2>{'Planned Activities' if can_manage else 'Published Activities'}</h2><div class='table-responsive'><table class='table day-schedule-table'><tr><th>Date</th><th>Class</th><th>Time</th><th>Activity</th><th>{'Manage' if can_manage else 'Status'}</th></tr>{rows_html}</table></div></section>"
     return page("Day Schedule", body, "teacher")
@@ -179,14 +195,15 @@ def academic_management():
         if action == "add_subject":
             if not managers:
                 abort(403)
+            department = request.form.get("department", "").strip()
             trade = request.form.get("trade", "").strip()
             level = request.form.get("level", "").strip()
             class_name = request.form.get("class_name", "").strip()
             subject_name = request.form.get("subject", "").strip()
             teacher_id = request.form.get("teacher_id", type=int)
             year = request.form.get("academic_year", "").strip() or None
-            if CLASS_TRADE_LEVEL.get(class_name) != (trade, level) or not subject_name:
-                flash("Choose a valid trade, level, class, and subject.", "danger")
+            if not is_valid_academic_placement(department, trade, level, class_name) or not subject_name:
+                flash("Choose a valid department, trade, level, class, and subject.", "danger")
             elif teacher_id and not User.query.filter_by(id=teacher_id, role="teacher").first():
                 flash("Choose a valid teacher account.", "danger")
             elif AcademicSubject.query.filter_by(class_name=class_name, subject=subject_name, academic_year=year).first():
@@ -270,10 +287,9 @@ def academic_management():
     subject_select = "".join(f"<option value='{s.id}'>{escape(s.class_name)} Â· {escape(s.subject)}</option>" for s in subjects if s.teacher_id == current_user.id)
     catalog_form = ""
     if managers:
-        class_options = "".join(f"<option value='{escape(name)}'>{escape(name)}</option>" for name in CLASS_NAMES)
         teacher_options = "".join(f"<option value='{t.id}'>{escape(t.full_name)} Â· {escape(t.class_name or 'No class')}</option>" for t in User.query.filter_by(role="teacher").order_by(User.full_name).all())
-        catalog_form = f"""<section class='panel'><h2>Programs and Subjects</h2><p class='muted'>Add a subject to a program class and assign any teacher, including one teaching across departments.</p><form method='post' class='row g-3'><input type='hidden' name='action' value='add_subject'><div class='col-md-3'><label>Trade / Department</label><select class='form-select' name='trade' id='academic-trade' required><option value=''>Choose trade</option>{''.join(f'<option>{escape(t)}</option>' for t in TRADES)}</select></div><div class='col-md-2'><label>Level</label><select class='form-select' name='level' id='academic-level' required><option value=''>Choose level</option></select></div><div class='col-md-4'><label>Class</label><select class='form-select' name='class_name' id='academic-class' required><option value=''>Choose class</option></select></div><div class='col-md-3'><label>Subject</label><input class='form-control' name='subject' required maxlength='160'></div><div class='col-md-4'><label>Assigned Teacher</label><select class='form-select' name='teacher_id'><option value=''>Unassigned</option>{teacher_options}</select></div><div class='col-md-4'><label>Academic Year (optional)</label><input class='form-control' name='academic_year' placeholder='2026-2027'></div><div class='col-12'><button class='btn btn-accent'>Add Program Subject</button></div></form></section>
-<script>const academicMap={json.dumps({trade: levels for trade, levels in PROGRAM_LEVELS.items()})};const classMap={json.dumps(CLASS_GROUPS)};const t=document.getElementById('academic-trade'),l=document.getElementById('academic-level'),c=document.getElementById('academic-class');function refreshAcademicOptions(){{l.innerHTML='<option value="">Choose level</option>';c.innerHTML='<option value="">Choose class</option>';for(const level of (academicMap[t.value]||[]))l.add(new Option(level,level));}}t.addEventListener('change',refreshAcademicOptions);l.addEventListener('change',()=>{{c.innerHTML='<option value="">Choose class</option>';for(const name of (((classMap[t.value]||{{}})[l.value])||[]))c.add(new Option(name,name));}});</script>"""
+        placement_fields = render_academic_placement_fields("academic-subject")
+        catalog_form = f"""<section class='panel'><h2>Programs and Subjects</h2><p class='muted'>Add a subject to a program class and assign any teacher, including one teaching across departments.</p><form method='post' class='row g-3'><input type='hidden' name='action' value='add_subject'>{placement_fields}<div class='col-md-3'><label>Subject</label><input class='form-control' name='subject' required maxlength='160'></div><div class='col-md-4'><label>Assigned Teacher</label><select class='form-select' name='teacher_id'><option value=''>Unassigned</option>{teacher_options}</select></div><div class='col-md-4'><label>Academic Year (optional)</label><input class='form-control' name='academic_year' placeholder='2026-2027'></div><div class='col-12'><button class='btn btn-accent'>Add Program Subject</button></div></form></section>"""
     teacher_forms = ""
     if not managers:
         teacher_forms = f"""<section class='panel'><h2>Submit a Lesson Plan</h2><form method='post' class='row g-3'><input type='hidden' name='action' value='submit_plan'><div class='col-md-6'><label>Assigned Class and Subject</label><select class='form-select' name='subject_id' required>{subject_select}</select></div><div class='col-md-6'><label>Lesson Date</label><input class='form-control' type='date' name='lesson_date' required></div><div class='col-md-6'><label>Topic</label><input class='form-control' name='topic' required></div><div class='col-md-6'><label>Learning Objectives</label><textarea class='form-control' name='objectives' required rows='2'></textarea></div><div class='col-md-6'><label>Teaching Activities</label><textarea class='form-control' name='activities' rows='2'></textarea></div><div class='col-md-6'><label>Resources</label><textarea class='form-control' name='resources' rows='2'></textarea></div><div class='col-12'><button class='btn btn-accent'>Submit for Review</button></div></form></section>

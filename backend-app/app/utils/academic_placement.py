@@ -8,7 +8,27 @@ def is_valid_academic_placement(department, trade, level, class_name):
     return class_name in classes
 
 
-def render_academic_placement_fields(prefix, values=None, column_class="col-md-3"):
+def get_academic_placement(class_name):
+    for department, trade_map in SCHOOL_STRUCTURE.items():
+        for trade, level_map in trade_map.items():
+            for level, class_names in level_map.items():
+                if class_name in class_names:
+                    return {
+                        "department": department,
+                        "trade": trade,
+                        "level": level,
+                        "class_name": class_name,
+                    }
+    return {}
+
+
+def render_academic_placement_fields(
+    prefix,
+    values=None,
+    column_class="col-md-3",
+    class_names=None,
+    required=True,
+):
     values = values or {}
     department = values.get("department", "")
     trade = values.get("trade", "")
@@ -39,17 +59,19 @@ def render_academic_placement_fields(prefix, values=None, column_class="col-md-3
     ):
         levels.append((level, department, trade))
 
+    allowed_classes = set(class_names) if class_names is not None else None
     classes = [
         (class_label, department_name, trade_name, level_name)
         for department_name, trade_map in SCHOOL_STRUCTURE.items()
         for trade_name, level_map in trade_map.items()
-        for level_name, class_names in level_map.items()
-        for class_label in class_names
+        for level_name, candidate_classes in level_map.items()
+        for class_label in candidate_classes
+        if allowed_classes is None or class_label in allowed_classes
     ]
     if class_name and not any(
         name == class_name and owner == department and trade_name == trade and level_name == level
         for name, owner, trade_name, level_name in classes
-    ):
+    ) and (allowed_classes is None or class_name in allowed_classes):
         classes.append((class_name, department, trade, level))
 
     def option(label, selected="", attributes=""):
@@ -91,7 +113,7 @@ def render_academic_placement_fields(prefix, values=None, column_class="col-md-3
         controls.append(
             f'<div class="{column_class}"><label class="form-label" for="{prefix}-{field_id}">'
             f'{label}</label><select class="form-select" id="{prefix}-{field_id}" name="{field}" '
-            f'required{disabled_attr}><option value="">{placeholder}</option>{options}</select></div>'
+            f'{"required" if required else ""}{disabled_attr}><option value="">{placeholder}</option>{options}</select></div>'
         )
 
     return (
