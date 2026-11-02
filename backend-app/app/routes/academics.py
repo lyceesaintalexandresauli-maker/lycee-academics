@@ -14,10 +14,26 @@ from openpyxl.utils import get_column_letter
 from app.extensions import db
 from app.models import User, Attendance, PendingCard, FeeTransaction, Book, DisciplineCase, SchoolMessage, Grade, TimetableEntry, DayScheduleEntry, Setting, AcademicSubject, SyllabusCoverage, LessonPlan, ReportCardApproval
 from app.utils.constants import *
+from app.utils.academic_placement import (
+    is_valid_academic_placement,
+    render_academic_placement_fields,
+)
 from app.utils.decorators import role_required
 from app.utils.helpers import get_setting, set_setting, attendance_for_student, linked_children, teacher_assignments, teacher_assigned_classes, get_school_logo_static_url
 from app.utils.rendering import page
 from app.utils.decorators import permission_for
+
+
+def _available_class_names():
+    registered = User.query.filter(
+        User.role == "student",
+        User.class_name.isnot(None),
+    ).with_entities(User.class_name).distinct().all()
+    return sorted(
+        set(CLASS_NAMES) | {name for (name,) in registered if name},
+        key=str.casefold,
+    )
+
 
 def timetable():
     if request.method == "POST" and current_user.role not in {"master_admin", "secretary", "patron", "matron"}:
