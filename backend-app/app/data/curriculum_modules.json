@@ -1,0 +1,2952 @@
+[
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMOL302",
+    "title": "Describe the Occupation and learning process",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMBC302",
+    "title": "Create a Business",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMCL302",
+    "title": "Apply computer literacy",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMCZ301",
+    "title": "Comply With Citizenship Values",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMEN302",
+    "title": "Use Pre-intermediate English at the Workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMFR303",
+    "title": "Communiquer simplement en français au quotidien",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMHE303",
+    "title": "Maintain SHE at Workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMKK302",
+    "title": "Kutumia Kiswahili wastani",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMKN302",
+    "title": "Gukoresha Ikinyarwanda Kiboneye",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "G",
+    "code": "GENGD301",
+    "title": "Apply basic graphics design",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "G",
+    "code": "GENAT302",
+    "title": "Apply Algebra and Trigonometry",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "G",
+    "code": "GENGP302",
+    "title": "Apply General Physics",
+    "hours": 40
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "S",
+    "code": "SWDPR301",
+    "title": "Analyse Project Requirements",
+    "hours": 50
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "S",
+    "code": "SWDWD301",
+    "title": "Develop Website",
+    "hours": 110
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "S",
+    "code": "SWDVC301",
+    "title": "Conduct Version Control",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "S",
+    "code": "SWDUX301",
+    "title": "Design UI/UX",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "S",
+    "code": "SWDJF301",
+    "title": "Apply JavaScript",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "S",
+    "code": "SWDVF301",
+    "title": "Develop game in Vue",
+    "hours": 120
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L3 Software Development",
+    "level": "L3",
+    "category": "S",
+    "code": "ICTIA301",
+    "title": "Integrate the Workplace",
+    "hours": 200
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMBP402",
+    "title": "Develop a business plan",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMCS402",
+    "title": "Apply computer skills",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMCZ401",
+    "title": "Promote the Culture of Peace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMEN402",
+    "title": "Use intermediate English at workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMKN402",
+    "title": "Gukoresha ikinyarwanda cy’umunyamwuga",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMFT401",
+    "title": "Exprimer des Opinions en Français élémentaire",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "G",
+    "code": "GENFA402",
+    "title": "Apply fundamental mathematical analysis",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "G",
+    "code": "GENMP402",
+    "title": "Apply mechanics and properties of matter",
+    "hours": 40
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "G",
+    "code": "GENBN401",
+    "title": "Perform Basic of Networking",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "S",
+    "code": "SWDDA401",
+    "title": "Apply Data Structure and Algorithm fundamentals using JavaScript",
+    "hours": 130
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "S",
+    "code": "SWDBS401",
+    "title": "Design Backend System",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "S",
+    "code": "SWDBA401",
+    "title": "Develop a Backend Application using Node.js",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "S",
+    "code": "SWDDD401",
+    "title": "Develop Database",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "S",
+    "code": "SWDPP401",
+    "title": "Apply PHP Programming",
+    "hours": 150
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "S",
+    "code": "SWDWS401",
+    "title": "Perform Basic Windows Server Administration",
+    "hours": 90
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development A",
+    "level": "L4",
+    "category": "S",
+    "code": "SWDIA401",
+    "title": "Integrate the workplace",
+    "hours": 200
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMBP402",
+    "title": "Develop a business plan",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMCS402",
+    "title": "Apply computer skills",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMCZ401",
+    "title": "Promote the Culture of Peace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMEN402",
+    "title": "Use intermediate English at workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMKN402",
+    "title": "Gukoresha ikinyarwanda cy’umunyamwuga",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMFT401",
+    "title": "Exprimer des Opinions en Français élémentaire",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "G",
+    "code": "GENFA402",
+    "title": "Apply fundamental mathematical analysis",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "G",
+    "code": "GENMP402",
+    "title": "Apply mechanics and properties of matter",
+    "hours": 40
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "G",
+    "code": "GENBN401",
+    "title": "Perform Basic of Networking",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "S",
+    "code": "SWDDA401",
+    "title": "Apply Data Structure and Algorithm fundamentals using JavaScript",
+    "hours": 130
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "S",
+    "code": "SWDBS401",
+    "title": "Design Backend System",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "S",
+    "code": "SWDBA401",
+    "title": "Develop a Backend Application using Node.js",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "S",
+    "code": "SWDDD401",
+    "title": "Develop Database",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "S",
+    "code": "SWDPP401",
+    "title": "Apply PHP Programming",
+    "hours": 150
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "S",
+    "code": "SWDWS401",
+    "title": "Perform Basic Windows Server Administration",
+    "hours": 90
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L4 Software Development B",
+    "level": "L4",
+    "category": "S",
+    "code": "SWDIA401",
+    "title": "Integrate the workplace",
+    "hours": 200
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "C",
+    "code": "CMEN502",
+    "title": "Use upper-intermediate English at the workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMCZ502",
+    "title": "Develop attitudes of living together in harmony",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMBO502",
+    "title": "Organise a business",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMFT502",
+    "title": "Echanger les idées en français élémentaire",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMKN502",
+    "title": "Gukoresha ikinyarwanda k’intyoza",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMKK502",
+    "title": "Kutumia Kiswahili katika mawasiliano ya kazini",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMPE502",
+    "title": "Apply Professional and multicultural ethics at workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMIW502",
+    "title": "Use ICT at Workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "G",
+    "code": "GENAP502",
+    "title": "Apply mathematical analysis, statistics and probability",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "G",
+    "code": "GENDM502",
+    "title": "Apply dynamics and mechanical waves",
+    "hours": 40
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "G",
+    "code": "GENPP501",
+    "title": "Apply Python Programming",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "G",
+    "code": "GENQA501",
+    "title": "Apply Quality Assurance",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "S",
+    "code": "SWDFA501",
+    "title": "Develop FrontEnd Using ReactJS",
+    "hours": 110
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "S",
+    "code": "SWDMA501",
+    "title": "Develop Mobile Application using Flutter",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "S",
+    "code": "SWDBF501",
+    "title": "Apply fundamentals of Blockchain",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "S",
+    "code": "SWDML501",
+    "title": "Apply fundamental machine learning",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "S",
+    "code": "SWDDO501",
+    "title": "Apply DevOps Techniques",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "S",
+    "code": "SWDND501",
+    "title": "Develop NoSQL Database",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Software Development",
+    "class_name": "L5 Software Development",
+    "level": "L5",
+    "category": "S",
+    "code": "NITIA501",
+    "title": "Integrate the Workplace",
+    "hours": 200
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMOL302",
+    "title": "Describe the Occupation and learning process",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMBC302",
+    "title": "Create a Business",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMCL302",
+    "title": "Apply computer literacy",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMCZ301",
+    "title": "Comply With Citizenship Values",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMEN302",
+    "title": "Use Pre-intermediate English at the Workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMFR303",
+    "title": "Communiquer simplement en français au quotidien",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMHE303",
+    "title": "Maintain SHE at Workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMKK302",
+    "title": "Kutumia Kiswahili wastani",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMKN302",
+    "title": "Gukoresha Ikinyarwanda Kiboneye",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "G",
+    "code": "GENCP302",
+    "title": "Apply C Programming Fundamentals",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "G",
+    "code": "GENNT301",
+    "title": "Apply Network Fundamentals",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "G",
+    "code": "GENEF302",
+    "title": "Apply Electronic fundamentals",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "G",
+    "code": "GENBE302",
+    "title": "Apply Basics of Electricity",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "G",
+    "code": "GENAT302",
+    "title": "Apply Algebra and Trigonometry",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "G",
+    "code": "GENGP302",
+    "title": "Apply General Physics",
+    "hours": 40
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "S",
+    "code": "NITLI301",
+    "title": "Setup LAN",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "S",
+    "code": "NITCI301",
+    "title": "Install CCTV System",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "S",
+    "code": "NITWI301",
+    "title": "Set up Wireless Network indoor",
+    "hours": 50
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "S",
+    "code": "NITVI301",
+    "title": "Setup VoIP System",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "S",
+    "code": "NITIS301",
+    "title": "Install IoT System",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L3 Networking and Internet Technologies",
+    "level": "L3",
+    "category": "S",
+    "code": "NITIA301",
+    "title": "Integrate the Workplace",
+    "hours": 200
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMBP402",
+    "title": "Develop a business plan",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMCS402",
+    "title": "Apply computer skills",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMCZ401",
+    "title": "Promote the Culture of Peace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMEN402",
+    "title": "Use intermediate English at workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMKN402",
+    "title": "Gukoresha ikinyarwanda cy’umunyamwuga",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMFT401",
+    "title": "Exprimer des Opinions en Français élémentaire",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "G",
+    "code": "GENFA402",
+    "title": "Apply fundamental mathematical analysis",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "G",
+    "code": "GENMP402",
+    "title": "Apply mechanics and properties of matter",
+    "hours": 40
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "G",
+    "code": "GENTD401",
+    "title": "Apply Basics of Technical Drawing",
+    "hours": 50
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "G",
+    "code": "GENDD401",
+    "title": "Develop Database",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "S",
+    "code": "NITWN401",
+    "title": "Set up Wide Area Network",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "S",
+    "code": "NITID401",
+    "title": "Develop IoT System",
+    "hours": 140
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "S",
+    "code": "NITIW401",
+    "title": "Develop IoT web application using PHP",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "S",
+    "code": "NITWA401",
+    "title": "Administer Windows Server",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "S",
+    "code": "NITWO401",
+    "title": "Set up wireless network outdoor",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "S",
+    "code": "NITFO401",
+    "title": "Deploy Fiber Optics Network",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies A",
+    "level": "L4",
+    "category": "S",
+    "code": "NITIA401",
+    "title": "Integrate the workplace",
+    "hours": 200
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMBP402",
+    "title": "Develop a business plan",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMCS402",
+    "title": "Apply computer skills",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMCZ401",
+    "title": "Promote the Culture of Peace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMEN402",
+    "title": "Use intermediate English at workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMKN402",
+    "title": "Gukoresha ikinyarwanda cy’umunyamwuga",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMFT401",
+    "title": "Exprimer des Opinions en Français élémentaire",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "G",
+    "code": "GENFA402",
+    "title": "Apply fundamental mathematical analysis",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "G",
+    "code": "GENMP402",
+    "title": "Apply mechanics and properties of matter",
+    "hours": 40
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "G",
+    "code": "GENTD401",
+    "title": "Apply Basics of Technical Drawing",
+    "hours": 50
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "G",
+    "code": "GENDD401",
+    "title": "Develop Database",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "S",
+    "code": "NITWN401",
+    "title": "Set up Wide Area Network",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "S",
+    "code": "NITID401",
+    "title": "Develop IoT System",
+    "hours": 140
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "S",
+    "code": "NITIW401",
+    "title": "Develop IoT web application using PHP",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "S",
+    "code": "NITWA401",
+    "title": "Administer Windows Server",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "S",
+    "code": "NITWO401",
+    "title": "Set up wireless network outdoor",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "S",
+    "code": "NITFO401",
+    "title": "Deploy Fiber Optics Network",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L4 Networking and Internet Technologies B",
+    "level": "L4",
+    "category": "S",
+    "code": "NITIA401",
+    "title": "Integrate the workplace",
+    "hours": 200
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "C",
+    "code": "CMEN502",
+    "title": "Use upper-intermediate English at the workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMCZ502",
+    "title": "Develop attitudes of living together in harmony",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMBO502",
+    "title": "Organise a business",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMFT502",
+    "title": "Echanger les idées en français élémentaire",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMKN502",
+    "title": "Gukoresha ikinyarwanda k’intyoza",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMKK502",
+    "title": "Kutumia Kiswahili katika mawasiliano ya kazini",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMPE502",
+    "title": "Apply Professional and multicultural ethics at workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMIW502",
+    "title": "Use ICT at Workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "G",
+    "code": "GENAP502",
+    "title": "Apply mathematical analysis, statistics and probability",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "G",
+    "code": "GENDM502",
+    "title": "Apply dynamics and mechanical waves",
+    "hours": 40
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "G",
+    "code": "GENPP501",
+    "title": "Apply Python Programming Fundamentals",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "S",
+    "code": "NITLS501",
+    "title": "Administer Linux Server",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "S",
+    "code": "NITZC501",
+    "title": "Apply Zero Client using Ncomputing Technology",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "S",
+    "code": "NITCS501",
+    "title": "Apply Cyber Security",
+    "hours": 120
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "S",
+    "code": "NITCC501",
+    "title": "Apply cloud computing Technology in Datacenter",
+    "hours": 120
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "S",
+    "code": "NITML501",
+    "title": "Apply Machine Learning fundamentals",
+    "hours": 120
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Networking and Internet Technologies",
+    "class_name": "L5 Networking and Internet Technologies",
+    "level": "L5",
+    "category": "S",
+    "code": "NITIA501",
+    "title": "Integrate the Workplace",
+    "hours": 200
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMOL302",
+    "title": "Describe the Occupation and learning process",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMBC302",
+    "title": "Create a Business",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMCL302",
+    "title": "Apply computer literacy",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMCZ301",
+    "title": "Comply With Citizenship Values",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMEN302",
+    "title": "Use Pre-intermediate English at the Workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMFR303",
+    "title": "Communiquer simplement en français au quotidien",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMHE303",
+    "title": "Maintain SHE at Workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMKK302",
+    "title": "Kutumia Kiswahili wastani",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMKN302",
+    "title": "Gukoresha Ikinyarwanda Kiboneye",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "G",
+    "code": "GENNF301",
+    "title": "Apply Network Fundamentals",
+    "hours": 50
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "G",
+    "code": "GENBE302",
+    "title": "Apply Fundamentals of Electricity",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "G",
+    "code": "GENEF302",
+    "title": "Apply Electronic fundamentals",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "G",
+    "code": "GENTD301",
+    "title": "Apply basic of technical drawing",
+    "hours": 50
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "G",
+    "code": "GENAC302",
+    "title": "Demonstrate Basics Of Chemistry",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "G",
+    "code": "GENAT302",
+    "title": "Apply Algebra and Trigonometry",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "G",
+    "code": "GENGP302",
+    "title": "Apply General Physics",
+    "hours": 40
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "S",
+    "code": "CSAIA301",
+    "title": "Assemble PCB and Computer system",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "S",
+    "code": "CSATM301",
+    "title": "Maintain Telephone",
+    "hours": 50
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "S",
+    "code": "CSACM301",
+    "title": "Maintain computer system",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "S",
+    "code": "CSACI301",
+    "title": "Implement electronic circuit",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "S",
+    "code": "CSACD301",
+    "title": "Deploy computer system",
+    "hours": 50
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "S",
+    "code": "CSAPD301",
+    "title": "Deploy Computer Peripherals",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L3 Computer System and Architecture",
+    "level": "L3",
+    "category": "S",
+    "code": "CSAPA301",
+    "title": "Integrate the workplace",
+    "hours": 200
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMBP402",
+    "title": "Develop a business plan",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMCS402",
+    "title": "Apply computer skills",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMCZ401",
+    "title": "Promote the Culture of Peace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMEN402",
+    "title": "Use intermediate English at workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMKN402",
+    "title": "Gukoresha ikinyarwanda cy’umunyamwuga",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMFT401",
+    "title": "Exprimer des Opinions en Français élémentaire",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "G",
+    "code": "GENFA402",
+    "title": "Apply fundamental mathematical analysis",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "G",
+    "code": "GENMP402",
+    "title": "Apply mechanics and properties of matter",
+    "hours": 40
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "G",
+    "code": "GENSW401",
+    "title": "Apply SolidWorks Design",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "G",
+    "code": "GENFC401",
+    "title": "Apply C++ programming",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "G",
+    "code": "GENCP401",
+    "title": "Apply C Programming",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "G",
+    "code": "GENDE401",
+    "title": "Apply digital electronics",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "S",
+    "code": "CSACR401",
+    "title": "Refurbish Computer system",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "S",
+    "code": "CSAES401",
+    "title": "Develop embedded System Hardware",
+    "hours": 120
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "S",
+    "code": "CSAFD401",
+    "title": "Develop embedded system firmware",
+    "hours": 80
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "S",
+    "code": "CSALS401",
+    "title": "Set up LED and LCD screen",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "S",
+    "code": "CSACE401",
+    "title": "Create Electronics Enclosure",
+    "hours": 70
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L4 Computer System and Architecture",
+    "level": "L4",
+    "category": "S",
+    "code": "CSAIA401",
+    "title": "Integrate the workplace",
+    "hours": 200
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "C",
+    "code": "CMEN502",
+    "title": "Use upper-intermediate English at the workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMCZ502",
+    "title": "Develop attitudes of living together in harmony",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMBO502",
+    "title": "Organise a business",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMFT502",
+    "title": "Echanger les idées en français élémentaire",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMKN502",
+    "title": "Gukoresha ikinyarwanda k’intyoza",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMKK502",
+    "title": "Kutumia Kiswahili katika mawasiliano ya kazini",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMPE502",
+    "title": "Apply Professional and multicultural ethics at workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMIW502",
+    "title": "Use ICT at Workplace",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "G",
+    "code": "GENAP502",
+    "title": "Apply mathematical analysis, statistics and probability",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "G",
+    "code": "GENDM502",
+    "title": "Apply dynamics and mechanical waves",
+    "hours": 40
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "S",
+    "code": "GENDS501",
+    "title": "Apply Data Structure and Algorithm using C programming",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "S",
+    "code": "GENWS501",
+    "title": "Apply Windows Server Administration",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "S",
+    "code": "GENCC501",
+    "title": "Consume Cloud Computing Services",
+    "hours": 60
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "S",
+    "code": "CSAPS501",
+    "title": "Develop Computer Power System",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "S",
+    "code": "CSACH501",
+    "title": "Design Computer Hardware Architecture",
+    "hours": 100
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "S",
+    "code": "CSASA501",
+    "title": "Automate System using PLC",
+    "hours": 90
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "S",
+    "code": "CSAHK501",
+    "title": "Develop Hobby Kernel Development",
+    "hours": 120
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "S",
+    "code": "GENQA501",
+    "title": "Apply Quality Assurance",
+    "hours": 30
+  },
+  {
+    "department": "ICT and Multimedia",
+    "trade": "Computer System and Architecture",
+    "class_name": "L5 Computer System and Architecture",
+    "level": "L5",
+    "category": "S",
+    "code": "CSAIA501",
+    "title": "Integrate the Workplace",
+    "hours": 200
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMOL302",
+    "title": "Describe the Occupation and learning process",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMBC302",
+    "title": "Create a Business",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMCL302",
+    "title": "Apply computer literacy",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMCZ301",
+    "title": "Comply With Citizenship Values",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMEN302",
+    "title": "Use Pre-intermediate English at the Workplace",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMFR303",
+    "title": "Communiquer simplement en français au quotidien",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMHE303",
+    "title": "Maintain SHE at Workplace",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMKK302",
+    "title": "Kutumia Kiswahili wastani",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "C",
+    "code": "CCMKN302",
+    "title": "Gukoresha Ikinyarwanda Kiboneye",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "G",
+    "code": "GENBE302",
+    "title": "Apply Basics of Domestic Electricity",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "G",
+    "code": "GENAC302",
+    "title": "Demonstrate Basics of Chemistry",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "G",
+    "code": "GENAT302",
+    "title": "Apply Basic Algebra and Trigonometry",
+    "hours": 60
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "G",
+    "code": "GENCE303",
+    "title": "Apply cost estimation",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "G",
+    "code": "GENTD301",
+    "title": "Perform technical drawing",
+    "hours": 50
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "G",
+    "code": "GENMS301",
+    "title": "Perform Basic Maintenance of sewing machines",
+    "hours": 40
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "S",
+    "code": "FADHP301",
+    "title": "Draft Hand Pattern",
+    "hours": 80
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "S",
+    "code": "FADHS301",
+    "title": "Perform hand sketching",
+    "hours": 50
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "S",
+    "code": "FADSA301",
+    "title": "Perform Basic stitches and surface application",
+    "hours": 80
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "S",
+    "code": "FADGC301",
+    "title": "Perform Garment Construction",
+    "hours": 110
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "S",
+    "code": "FADHS301",
+    "title": "Perform Hand Weaving",
+    "hours": 70
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "S",
+    "code": "FADCK301",
+    "title": "Perform Crocheting and knitting",
+    "hours": 50
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "S",
+    "code": "FADFC301",
+    "title": "Perform Fabric Care",
+    "hours": 50
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L3 Fashion Design",
+    "level": "L3",
+    "category": "S",
+    "code": "FADIA302",
+    "title": "Integrate the Workplace",
+    "hours": 200
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMBP402",
+    "title": "Develop a business plan",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMCS402",
+    "title": "Apply computer skills",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMCZ401",
+    "title": "Promote the Culture of Peace",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMEN402",
+    "title": "Use intermediate English at workplace",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMKN402",
+    "title": "Gukoresha ikinyarwanda cy’umunyamwuga",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMFT401",
+    "title": "Exprimer des Opinions en Français élémentaire",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "C",
+    "code": "CCMKK402",
+    "title": "Kutumia Kiswahili katika mawasiliano ya kawaida",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "G",
+    "code": "GENFA402",
+    "title": "Apply Elementary Mathematical Analysis",
+    "hours": 60
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "G",
+    "code": "GENAC402",
+    "title": "Demonstrate Knowledge of Organic Chemistry",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "G",
+    "code": "GENST401",
+    "title": "Perform sewing techniques",
+    "hours": 60
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "G",
+    "code": "FADSP401",
+    "title": "Sell Fashion Products and Services",
+    "hours": 40
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "S",
+    "code": "FADFC401",
+    "title": "Perform Fabric cutting",
+    "hours": 50
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "S",
+    "code": "FADFFM401",
+    "title": "Perform fabric manipulation",
+    "hours": 70
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "S",
+    "code": "FADPM401",
+    "title": "Manipulate block pattern",
+    "hours": 110
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "S",
+    "code": "FADDM401",
+    "title": "Make formal dress",
+    "hours": 120
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "S",
+    "code": "FADMJ401",
+    "title": "Make Jumpsuit",
+    "hours": 70
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "S",
+    "code": "FADME401",
+    "title": "Perform machine embroidery",
+    "hours": 70
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "S",
+    "code": "FADWJ401",
+    "title": "Make women jacket",
+    "hours": 110
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L4 Fashion Design",
+    "level": "L4",
+    "category": "S",
+    "code": "FADIA402",
+    "title": "Integrate the workplace",
+    "hours": 200
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "C",
+    "code": "CMEN502",
+    "title": "Use upper-intermediate English at the workplace",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMCZ502",
+    "title": "Develop attitudes of living together in harmony",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMBO502",
+    "title": "Organise a business",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMFT502",
+    "title": "Echanger les idées en français élémentaire",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMKN502",
+    "title": "Gukoresha ikinyarwanda k’intyoza",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMKK502",
+    "title": "Kutumia Kiswahili katika mawasiliano ya kazini",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMPE502",
+    "title": "Apply Professional and multicultural ethics at workplace",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "C",
+    "code": "CCMIW502",
+    "title": "Use ICT at Workplace",
+    "hours": 30
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "G",
+    "code": "GENAP502",
+    "title": "Apply mathematical analysis, statistics and probability",
+    "hours": 60
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "G",
+    "code": "FADDI501",
+    "title": "Perform Digital Illustration",
+    "hours": 90
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "G",
+    "code": "FADDP501",
+    "title": "Make Digital Pattern",
+    "hours": 100
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "S",
+    "code": "FADEG501",
+    "title": "Make Evening Gown",
+    "hours": 100
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "S",
+    "code": "FADMS501",
+    "title": "Make Men suit",
+    "hours": 120
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "S",
+    "code": "FADMW501",
+    "title": "Make Men’s Wear",
+    "hours": 90
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "S",
+    "code": "FADWW501",
+    "title": "Make Women’s wear",
+    "hours": 110
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "S",
+    "code": "FADFA501",
+    "title": "Make Fashion Accessories",
+    "hours": 90
+  },
+  {
+    "department": "Fashion and Design",
+    "trade": "Fashion Design",
+    "class_name": "L5 Fashion Design",
+    "level": "L5",
+    "category": "S",
+    "code": "FADIA502",
+    "title": "Integrate the Workplace",
+    "hours": 200
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 4 Accounting",
+    "level": "S4",
+    "category": "A",
+    "code": "01",
+    "title": "English for Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 4 Accounting",
+    "level": "S4",
+    "category": "A",
+    "code": "02",
+    "title": "Management in Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 4 Accounting",
+    "level": "S4",
+    "category": "A",
+    "code": "03",
+    "title": "ICT in Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 4 Accounting",
+    "level": "S4",
+    "category": "A",
+    "code": "04",
+    "title": "Financial Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 4 Accounting",
+    "level": "S4",
+    "category": "A",
+    "code": "05",
+    "title": "Mathematics for Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 4 Accounting",
+    "level": "S4",
+    "category": "A",
+    "code": "06",
+    "title": "Taxation",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 4 Accounting",
+    "level": "S4",
+    "category": "A",
+    "code": "07",
+    "title": "Entrepreneurship",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 4 Accounting",
+    "level": "S4",
+    "category": "A",
+    "code": "08",
+    "title": "Ikinyarwanda",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 4 Accounting",
+    "level": "S4",
+    "category": "A",
+    "code": "09",
+    "title": "General Studies",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 4 Accounting",
+    "level": "S4",
+    "category": "A",
+    "code": "10",
+    "title": "Physical Education and Sport",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 4 Accounting",
+    "level": "S4",
+    "category": "A",
+    "code": "11",
+    "title": "French (combination, non-literary)",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 5 Accounting",
+    "level": "S5",
+    "category": "A",
+    "code": "01",
+    "title": "English for Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 5 Accounting",
+    "level": "S5",
+    "category": "A",
+    "code": "02",
+    "title": "Management in Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 5 Accounting",
+    "level": "S5",
+    "category": "A",
+    "code": "03",
+    "title": "ICT in Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 5 Accounting",
+    "level": "S5",
+    "category": "A",
+    "code": "04",
+    "title": "Financial Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 5 Accounting",
+    "level": "S5",
+    "category": "A",
+    "code": "05",
+    "title": "Mathematics for Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 5 Accounting",
+    "level": "S5",
+    "category": "A",
+    "code": "06",
+    "title": "Taxation",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 5 Accounting",
+    "level": "S5",
+    "category": "A",
+    "code": "07",
+    "title": "Entrepreneurship",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 5 Accounting",
+    "level": "S5",
+    "category": "A",
+    "code": "08",
+    "title": "Ikinyarwanda",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 5 Accounting",
+    "level": "S5",
+    "category": "A",
+    "code": "09",
+    "title": "General Studies",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 5 Accounting",
+    "level": "S5",
+    "category": "A",
+    "code": "10",
+    "title": "Physical Education and Sport",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 5 Accounting",
+    "level": "S5",
+    "category": "A",
+    "code": "11",
+    "title": "French (combination, non-literary)",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 6 Accounting",
+    "level": "S6",
+    "category": "A",
+    "code": "01",
+    "title": "Auditing",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 6 Accounting",
+    "level": "S6",
+    "category": "A",
+    "code": "02",
+    "title": "English for Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 6 Accounting",
+    "level": "S6",
+    "category": "A",
+    "code": "03",
+    "title": "Management in Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 6 Accounting",
+    "level": "S6",
+    "category": "A",
+    "code": "04",
+    "title": "ICT in Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 6 Accounting",
+    "level": "S6",
+    "category": "A",
+    "code": "05",
+    "title": "Financial Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 6 Accounting",
+    "level": "S6",
+    "category": "A",
+    "code": "06",
+    "title": "Mathematics for Accounting",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 6 Accounting",
+    "level": "S6",
+    "category": "A",
+    "code": "07",
+    "title": "Taxation",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 6 Accounting",
+    "level": "S6",
+    "category": "A",
+    "code": "08",
+    "title": "Entrepreneurship",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 6 Accounting",
+    "level": "S6",
+    "category": "A",
+    "code": "09",
+    "title": "Ikinyarwanda",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 6 Accounting",
+    "level": "S6",
+    "category": "A",
+    "code": "10",
+    "title": "General Studies",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 6 Accounting",
+    "level": "S6",
+    "category": "A",
+    "code": "11",
+    "title": "Physical Education and Sport",
+    "hours": 0
+  },
+  {
+    "department": "Professional Accountant",
+    "trade": "Accounting",
+    "class_name": "Senior 6 Accounting",
+    "level": "S6",
+    "category": "A",
+    "code": "12",
+    "title": "French (combination, non-literary)",
+    "hours": 0
+  }
+]

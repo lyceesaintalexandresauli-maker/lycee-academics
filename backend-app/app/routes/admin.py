@@ -14,14 +14,49 @@ from app.models import (User, Attendance, PendingCard, FeeTransaction, FeeRequir
                         OfficialNoticePermission)
 from app.models import StudentGuardian
 from app.models import AcademicSubject
+from app.models import ClassModule, SchoolClass
 from app.utils.constants import *
 from app.utils.academic_placement import is_valid_academic_placement
+from app.utils.curriculum_catalog import curriculum_modules_for
 from app.utils.decorators import role_required
 from app.utils.helpers import get_setting, set_setting, attendance_for_student
 from app.utils.rendering import page
 from app.utils.decorators import permission_for
 from app.services.activity import log_student_activity
 from app.services.meeting_workflow import verify_guardian_link
+
+
+def _available_teacher_modules(department, trade, level, class_name):
+    """Return catalog modules that can still be assigned to this class."""
+    assigned_subjects = {
+        subject.subject.casefold()
+        for subject in AcademicSubject.query.filter_by(class_name=class_name, is_active=True)
+        .filter(AcademicSubject.teacher_id.isnot(None)).all()
+    }
+    school_class = SchoolClass.query.filter(db.func.lower(SchoolClass.name) == class_name.casefold()).first()
+    saved_modules = ClassModule.query.filter_by(class_id=school_class.id).all() if school_class else []
+    saved_by_code = {module.code.casefold(): module for module in saved_modules}
+    available = []
+    seen_titles = set()
+    seen_codes = set()
+    for item in curriculum_modules_for(department, trade, level):
+        saved = saved_by_code.get(item["code"].casefold())
+        if saved and (not saved.is_active or saved.teacher_id is not None):
+            continue
+        title = saved.title if saved else item["title"]
+        if title.casefold() in assigned_subjects or title.casefold() in seen_titles:
+            continue
+        available.append({**item, "title": title})
+        seen_titles.add(title.casefold())
+        seen_codes.add(item["code"].casefold())
+    for saved in saved_modules:
+        if not saved.is_active or saved.teacher_id is not None:
+            continue
+        if saved.code.casefold() in seen_codes or saved.title.casefold() in assigned_subjects or saved.title.casefold() in seen_titles:
+            continue
+        available.append({"code": saved.code, "title": saved.title, "category": saved.category, "hours": saved.hours})
+        seen_titles.add(saved.title.casefold())
+    return available
 
 def admin():
     if request.method == "POST":
@@ -178,20 +213,26 @@ def admin():
                     if not is_valid_academic_placement(department, trade, level, class_name) or not subject:
                         assignment_error = True
                         break
-                    assignments.append((department, trade, level, class_name, subject))
+                    module = next((item for item in _available_teacher_modules(
+                        department, trade, level, class_name
+                    ) if item["title"].casefold() == subject.casefold()), None)
+                    if not module:
+                        assignment_error = True
+                        break
+                    assignments.append((department, trade, level, class_name, subject, module))
                 if not assignments:
                     assignment_error = True
                 assignment_keys = [
                     (class_name.casefold(), subject.casefold())
-                    for _, _, _, class_name, subject in assignments
+                    for _, _, _, class_name, subject, _ in assignments
                 ]
                 if len(assignment_keys) != len(set(assignment_keys)):
                     assignment_error = True
             conflicting_assignment = any(
                 AcademicSubject.query.filter_by(class_name=class_name, subject=subject).filter(
-                    AcademicSubject.teacher_id.isnot(None)
+                    AcademicSubject.teacher_id.isnot(None), AcademicSubject.is_active.is_(True)
                 ).first()
-                for _, _, _, class_name, subject in assignments
+                for _, _, _, class_name, subject, _ in assignments
             )
             if not username or not full_name or len(password) < 8 or role not in STAFF_ROLES or assignment_error:
                 flash("Enter valid staff details and add at least one complete teacher assignment (department, trade, level, class, and lesson).", "danger")
@@ -205,7 +246,7 @@ def admin():
                 u.set_password(password)
                 db.session.add(u)
                 db.session.flush()
-                for _, trade, level, class_name, subject in assignments:
+                for _, trade, level, class_name, subject, module_data in assignments:
                     existing_subjects = AcademicSubject.query.filter_by(class_name=class_name, subject=subject).all()
                     if existing_subjects:
                         for existing in existing_subjects:
@@ -214,6 +255,22 @@ def admin():
                     else:
                         db.session.add(AcademicSubject(trade=trade, level=level, class_name=class_name,
                                                        subject=subject, teacher_id=u.id))
+                    school_class = SchoolClass.query.filter(db.func.lower(SchoolClass.name) == class_name.casefold()).first()
+                    if school_class and module_data["category"] in {"C", "G", "S"}:
+                        module = ClassModule.query.filter_by(class_id=school_class.id, code=module_data["code"]).first()
+                        if module:
+                            module.teacher_id = u.id
+                            module.is_active = True
+                        else:
+                            db.session.add(ClassModule(
+                                class_id=school_class.id,
+                                code=module_data["code"],
+                                title=module_data["title"],
+                                category=module_data["category"],
+                                hours=module_data["hours"],
+                                teacher_id=u.id,
+                                created_by_id=current_user.id,
+                            ))
                 db.session.commit()
                 flash("Staff account created successfully.", "success")
         elif action == "assign_teacher_class":
@@ -270,14 +327,42 @@ def admin():
         for level, class_names in level_map.items()
         for class_name in class_names
     )
-    staff_subject_options = "".join(
-        f'<option value="{escape(subject)}">' for subject in (
-            "Accounting", "Accounting Professional", "FAD", "Mathematics",
-            "Computer Literacy and Skills", "Religious Education", "Business",
-            "Citizenship", "Occupation", "Social and Health Education (SHE)",
-            "General Studies",
-        )
-    )
+    assigned_subject_keys = {
+        (subject.class_name.casefold(), subject.subject.casefold())
+        for subject in AcademicSubject.query.filter(AcademicSubject.teacher_id.isnot(None), AcademicSubject.is_active.is_(True)).all()
+    }
+    saved_modules_by_class = {}
+    for module in ClassModule.query.join(SchoolClass).all():
+        saved_modules_by_class.setdefault(module.school_class.name.casefold(), []).append(module)
+    staff_subject_options = []
+    for department, trade_map in SCHOOL_STRUCTURE.items():
+        for trade, level_map in trade_map.items():
+            for level, class_names in level_map.items():
+                for class_name in class_names:
+                    assigned_here = {subject for assigned_class, subject in assigned_subject_keys
+                                     if assigned_class == class_name.casefold()}
+                    saved_here = saved_modules_by_class.get(class_name.casefold(), [])
+                    saved_by_code = {module.code.casefold(): module for module in saved_here}
+                    candidates = list(curriculum_modules_for(department, trade, level))
+                    known_codes = {item["code"].casefold() for item in candidates}
+                    candidates.extend({"code": module.code, "title": module.title,
+                                       "category": module.category, "hours": module.hours}
+                                      for module in saved_here if module.code.casefold() not in known_codes)
+                    seen_titles = set()
+                    for item in candidates:
+                        module = saved_by_code.get(item["code"].casefold())
+                        title = module.title if module else item["title"]
+                        if (module and (not module.is_active or module.teacher_id is not None)) or \
+                                title.casefold() in assigned_here or title.casefold() in seen_titles:
+                            continue
+                        attributes = (f'data-department="{escape(department)}" '
+                                      f'data-trade="{escape(trade)}" data-level="{escape(level)}" '
+                                      f'data-class="{escape(class_name)}"')
+                        staff_subject_options.append(
+                            f'<option value="{escape(title)}" {attributes}>{escape(title)}</option>'
+                        )
+                        seen_titles.add(title.casefold())
+    staff_subject_options = "".join(staff_subject_options)
     user_row_html = []
     for user in users:
         can_manage_user = current_user.role == "master_admin"
@@ -352,7 +437,7 @@ def admin():
         f"<option value='{role}'>{'Master Admin - Full system administrator' if role == 'master_admin' else 'Head Teacher - School-wide academic and student affairs supervision' if role == 'head_teacher' else 'Accountant - School finances and fee reporting' if role == 'accountant' else 'Discipline Officer - Student behavior and discipline cases' if role == 'discipline' else 'Librarian - Books, loans, returns, and overdue tracking' if role == 'librarian' else 'Matron / Patron - Boarding student supervision' if role in {'matron', 'patron'} else 'Secretary - Official correspondence and authorized reports' if role == 'secretary' else 'Teacher - Classes, lessons, assessments, and academic reports' if role == 'teacher' else role.replace('_', ' ').title()}</option>"
         for role in sorted(STAFF_ROLES)
     )
-    body = f"""<section class="panel"><h1>Master Admin <span class="accent">Control Center</span></h1><p class="muted"><strong>Master Admin</strong> is the main system administrator. This role manages users, roles, permissions, and system settings, with access to all school information.</p><p class="muted"><strong>Head Teacher</strong> leads school activities and supervises teachers, students, examination results, discipline, and general school reports.</p><p class="muted"><strong>Accountant</strong> manages school finances, student payments, receipts, outstanding fees, and financial reports.</p><p class="muted"><strong>Discipline Officer</strong> manages student behavior, disciplinary offenses, punishments, discipline reports, and measures to resolve disciplinary issues.</p><p class="muted"><strong>Librarian</strong> manages library books, registers new books, issues and receives books, and tracks overdue or unreturned books.</p><p class="muted"><strong>Matron / Patron</strong> manages boarding students, monitors attendance in the dormitories, supervises behavior, and handles issues affecting assigned students.</p><p class="muted"><strong>Secretary</strong> manages official letters and documents, receives and sends correspondence, and prepares administrative reports they are authorized to access.</p><p class="muted"><strong>Teacher</strong> manages attendance for assigned classes, lessons, assessments, and academic reports.</p><p class="muted"><strong>Student</strong> can view personal examination results, attendance records, class timetables, school announcements, and outstanding school fees according to assigned permissions.</p><p class="muted"><strong>Parent / Guardian</strong> can view information about their child, including examination results, attendance, paid or outstanding fees, and school announcements.</p><div class="row g-4"><div class="col-md-6"><h3>Create Staff Account</h3><form method="post" id="create-staff-form"><input type="hidden" name="action" value="create_staff"><label class="mt-2">Full Name</label><input class="form-control" name="full_name" required><label class="mt-2">Username</label><input class="form-control" name="username" required><label class="mt-2">Role</label><select class="form-select" name="role">{role_options}</select><div class="teacher-class-fields" hidden><p class="muted mt-2 mb-1">Assign one or more lessons. You can include classes from different trades or departments.</p><div id="teacher-assignments"><div class="teacher-assignment row g-2 border rounded p-2 mt-2"><div class="col-md-3"><label>Trade / Department</label><select class="form-select assignment-trade" name="assignment_trade[]"><option value="">Choose trade...</option>{staff_trade_options}</select></div><div class="col-md-2"><label>Level</label><select class="form-select assignment-level" name="assignment_level[]" disabled><option value="">Choose trade first...</option>{staff_level_options}</select></div><div class="col-md-3"><label>Class</label><select class="form-select assignment-class" name="assignment_class[]" disabled><option value="">Choose level first...</option>{staff_class_options}</select></div><div class="col-md-3"><label>Lesson / Subject</label><input class="form-control" name="assignment_subject[]" maxlength="160" list="general-course-subjects" placeholder="e.g. Software Development"></div><div class="col-md-1 d-flex align-items-end"><button class="btn btn-outline-danger remove-assignment" type="button" aria-label="Remove assignment">&times;</button></div></div></div><datalist id="general-course-subjects">{staff_subject_options}</datalist><button class="btn btn-sm btn-outline-primary mt-2" type="button" id="add-teacher-assignment">Add another class / lesson assignment</button></div><label class="mt-2">Password (8+ chars)</label><input type="password" minlength="8" class="form-control" name="password" required><button class="btn btn-accent mt-3">Create Staff Account</button></form><template id="teacher-assignment-template"><div class="teacher-assignment row g-2 border rounded p-2 mt-2"><div class="col-md-3"><label>Trade / Department</label><select class="form-select assignment-trade" name="assignment_trade[]"><option value="">Choose trade...</option>{staff_trade_options}</select></div><div class="col-md-2"><label>Level</label><select class="form-select assignment-level" name="assignment_level[]" disabled><option value="">Choose trade first...</option>{staff_level_options}</select></div><div class="col-md-3"><label>Class</label><select class="form-select assignment-class" name="assignment_class[]" disabled><option value="">Choose level first...</option>{staff_class_options}</select></div><div class="col-md-3"><label>Lesson / Subject</label><input class="form-control" name="assignment_subject[]" maxlength="160" list="general-course-subjects" placeholder="e.g. Software Development"></div><div class="col-md-1 d-flex align-items-end"><button class="btn btn-outline-danger remove-assignment" type="button" aria-label="Remove assignment">&times;</button></div></div></template><script>(function(){{const container=document.getElementById('teacher-assignments'),template=document.getElementById('teacher-assignment-template');function setup(row){{const trade=row.querySelector('.assignment-trade'),level=row.querySelector('.assignment-level'),klass=row.querySelector('.assignment-class'),levels=[...level.querySelectorAll('option[data-trade]')],classes=[...klass.querySelectorAll('option[data-trade]')];function updateLevels(){{level.innerHTML='<option value="">Choose level...</option>';levels.filter(option=>option.dataset.trade===trade.value).forEach(option=>level.appendChild(option.cloneNode(true)));level.disabled=!trade.value;updateClasses()}}function updateClasses(){{klass.innerHTML='<option value="">Choose class...</option>';classes.filter(option=>option.dataset.trade===trade.value&&option.dataset.level===level.value).forEach(option=>klass.appendChild(option.cloneNode(true)));klass.disabled=!trade.value||!level.value}}trade.addEventListener('change',updateLevels);level.addEventListener('change',updateClasses);row.querySelector('.remove-assignment').addEventListener('click',()=>{{if(container.children.length>1)row.remove()}})}}container.querySelectorAll('.teacher-assignment').forEach(setup);document.getElementById('add-teacher-assignment').addEventListener('click',()=>{{const fragment=template.content.cloneNode(true),row=fragment.querySelector('.teacher-assignment');container.appendChild(fragment);setup(row)}})}})();</script></div>
+    body = f"""<section class="panel"><h1>Master Admin <span class="accent">Control Center</span></h1><p class="muted"><strong>Master Admin</strong> is the main system administrator. This role manages users, roles, permissions, and system settings, with access to all school information.</p><p class="muted"><strong>Head Teacher</strong> leads school activities and supervises teachers, students, examination results, discipline, and general school reports.</p><p class="muted"><strong>Accountant</strong> manages school finances, student payments, receipts, outstanding fees, and financial reports.</p><p class="muted"><strong>Discipline Officer</strong> manages student behavior, disciplinary offenses, punishments, discipline reports, and measures to resolve disciplinary issues.</p><p class="muted"><strong>Librarian</strong> manages library books, registers new books, issues and receives books, and tracks overdue or unreturned books.</p><p class="muted"><strong>Matron / Patron</strong> manages boarding students, monitors attendance in the dormitories, supervises behavior, and handles issues affecting assigned students.</p><p class="muted"><strong>Secretary</strong> manages official letters and documents, receives and sends correspondence, and prepares administrative reports they are authorized to access.</p><p class="muted"><strong>Teacher</strong> manages attendance for assigned classes, lessons, assessments, and academic reports.</p><p class="muted"><strong>Student</strong> can view personal examination results, attendance records, class timetables, school announcements, and outstanding school fees according to assigned permissions.</p><p class="muted"><strong>Parent / Guardian</strong> can view information about their child, including examination results, attendance, paid or outstanding fees, and school announcements.</p><div class="row g-4"><div class="col-md-6"><h3>Create Staff Account</h3><form method="post" id="create-staff-form"><input type="hidden" name="action" value="create_staff"><label class="mt-2">Full Name</label><input class="form-control" name="full_name" required><label class="mt-2">Username</label><input class="form-control" name="username" required><label class="mt-2">Role</label><select class="form-select" name="role">{role_options}</select><div class="teacher-class-fields" hidden><p class="muted mt-2 mb-1">Assign one or more lessons. You can include classes from different trades or departments.</p><div id="teacher-assignments"><div class="teacher-assignment row g-2 border rounded p-2 mt-2"><div class="col-md-3"><label>Trade / Department</label><select class="form-select assignment-trade" name="assignment_trade[]"><option value="">Choose trade...</option>{staff_trade_options}</select></div><div class="col-md-2"><label>Level</label><select class="form-select assignment-level" name="assignment_level[]" disabled><option value="">Choose trade first...</option>{staff_level_options}</select></div><div class="col-md-3"><label>Class</label><select class="form-select assignment-class" name="assignment_class[]" disabled><option value="">Choose level first...</option>{staff_class_options}</select></div><div class="col-md-3"><label>Lesson / Subject</label><select class="form-select assignment-subject" name="assignment_subject[]" required disabled><option value="">Choose class first...</option>{staff_subject_options}</select></div><div class="col-md-1 d-flex align-items-end"><button class="btn btn-outline-danger remove-assignment" type="button" aria-label="Remove assignment">&times;</button></div></div></div><button class="btn btn-sm btn-outline-primary mt-2" type="button" id="add-teacher-assignment">Add another class / lesson assignment</button></div><label class="mt-2">Password (8+ chars)</label><input type="password" minlength="8" class="form-control" name="password" required><button class="btn btn-accent mt-3">Create Staff Account</button></form><template id="teacher-assignment-template"><div class="teacher-assignment row g-2 border rounded p-2 mt-2"><div class="col-md-3"><label>Trade / Department</label><select class="form-select assignment-trade" name="assignment_trade[]"><option value="">Choose trade...</option>{staff_trade_options}</select></div><div class="col-md-2"><label>Level</label><select class="form-select assignment-level" name="assignment_level[]" disabled><option value="">Choose trade first...</option>{staff_level_options}</select></div><div class="col-md-3"><label>Class</label><select class="form-select assignment-class" name="assignment_class[]" disabled><option value="">Choose level first...</option>{staff_class_options}</select></div><div class="col-md-3"><label>Lesson / Subject</label><select class="form-select assignment-subject" name="assignment_subject[]" required disabled><option value="">Choose class first...</option>{staff_subject_options}</select></div><div class="col-md-1 d-flex align-items-end"><button class="btn btn-outline-danger remove-assignment" type="button" aria-label="Remove assignment">&times;</button></div></div></template><script>(function(){{const container=document.getElementById('teacher-assignments'),template=document.getElementById('teacher-assignment-template');function setup(row){{const trade=row.querySelector('.assignment-trade'),level=row.querySelector('.assignment-level'),klass=row.querySelector('.assignment-class'),levels=[...level.querySelectorAll('option[data-trade]')],classes=[...klass.querySelectorAll('option[data-trade]')];function updateLevels(){{level.innerHTML='<option value="">Choose level...</option>';levels.filter(option=>option.dataset.trade===trade.value).forEach(option=>level.appendChild(option.cloneNode(true)));level.disabled=!trade.value;updateClasses()}}function updateClasses(){{klass.innerHTML='<option value="">Choose class...</option>';classes.filter(option=>option.dataset.trade===trade.value&&option.dataset.level===level.value).forEach(option=>klass.appendChild(option.cloneNode(true)));klass.disabled=!trade.value||!level.value}}trade.addEventListener('change',updateLevels);level.addEventListener('change',updateClasses);row.querySelector('.remove-assignment').addEventListener('click',()=>{{if(container.children.length>1)row.remove()}})}}container.querySelectorAll('.teacher-assignment').forEach(setup);document.getElementById('add-teacher-assignment').addEventListener('click',()=>{{const fragment=template.content.cloneNode(true),row=fragment.querySelector('.teacher-assignment');container.appendChild(fragment);setup(row)}})}})();</script></div>
 <div class="col-md-6"><h3>Link Parent to Student</h3><form method="post"><input type="hidden" name="action" value="link_parent"><label class="mt-2">Parent</label><select class="form-select" name="parent_id" required><option value="">Choose parent...</option>{parent_options}</select><label class="mt-2">Student</label><select class="form-select" name="student_id" required><option value="">Choose student...</option>{student_options}</select><button class="btn btn-accent mt-3">Link Parent & Student</button></form></div></div></section>
 <section class="panel"><h2>Assign Teacher to Class</h2><form method="post" class="row g-3 assign-teacher-form"><input type="hidden" name="action" value="assign_teacher_class"><div class="col-md-6"><label>Teacher</label><select class="form-select" name="teacher_id" required><option value="">Choose teacher...</option>{teacher_options}</select></div><div class="col-md-4"><label>Class</label><select class="form-select" name="class_name" required><option value="">Choose class...</option>{class_options}</select></div><div class="col-md-2 d-flex align-items-end"><button class="btn btn-accent">Save Assignment</button></div></form></section>
 <section class="panel"><h2>Home Page Motto</h2><p class="muted">Write or change the school's motto here. It appears beneath the school name on the public home page.</p><form method="post"><input type="hidden" name="action" value="save_motto"><label class="mt-2">School Motto</label><input class="form-control" name="school_motto" maxlength="200" value="{get_setting('school_motto', '').replace('&', '&amp;').replace('\"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')}" placeholder="Enter the official school motto"><button class="btn btn-accent mt-3">Save Motto</button></form></section>
@@ -379,6 +464,7 @@ if(!container||!template)return;
 const allTrades=[...template.content.querySelectorAll('.assignment-trade option[data-department]')];
 const allLevels=[...template.content.querySelectorAll('.assignment-level option[data-department]')];
 const allClasses=[...template.content.querySelectorAll('.assignment-class option[data-department]')];
+const allSubjects=[...template.content.querySelectorAll('.assignment-subject option[data-department]')];
 function replace(select,options,placeholder,enabled){
 const selected=select.value;
 select.replaceChildren(new Option(placeholder,''),...options.map(option=>option.cloneNode(true)));
@@ -390,12 +476,15 @@ const department=row.querySelector('.assignment-department');
 const trade=row.querySelector('.assignment-trade');
 const level=row.querySelector('.assignment-level');
 const className=row.querySelector('.assignment-class');
-if(changed==='department'){trade.value='';level.value='';className.value=''}
-if(changed==='trade'){level.value='';className.value=''}
-if(changed==='level')className.value='';
+const subject=row.querySelector('.assignment-subject');
+if(changed==='department'){trade.value='';level.value='';className.value='';subject.value=''}
+if(changed==='trade'){level.value='';className.value='';subject.value=''}
+if(changed==='level'){className.value='';subject.value=''}
+if(changed==='class')subject.value='';
 replace(trade,allTrades.filter(option=>option.dataset.department===department.value),'Choose trade...',Boolean(department.value));
 replace(level,allLevels.filter(option=>option.dataset.department===department.value&&option.dataset.trade===trade.value),'Choose level...',Boolean(trade.value));
 replace(className,allClasses.filter(option=>option.dataset.department===department.value&&option.dataset.trade===trade.value&&option.dataset.level===level.value),'Choose class...',Boolean(level.value));
+replace(subject,allSubjects.filter(option=>option.dataset.department===department.value&&option.dataset.trade===trade.value&&option.dataset.level===level.value&&option.dataset.class===className.value),'Choose module...',Boolean(className.value));
 }
 container.querySelectorAll('.teacher-assignment').forEach(row=>refresh(row));
 container.addEventListener('change',event=>{
@@ -403,7 +492,8 @@ const row=event.target.closest('.teacher-assignment');
 if(!row)return;
 const changed=event.target.classList.contains('assignment-department')?'department':
 event.target.classList.contains('assignment-trade')?'trade':
-event.target.classList.contains('assignment-level')?'level':null;
+event.target.classList.contains('assignment-level')?'level':
+event.target.classList.contains('assignment-class')?'class':null;
 if(changed)refresh(row,changed);
 });
 new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{

@@ -16,6 +16,28 @@ class AcademicSubject(db.Model):
     __table_args__ = (db.UniqueConstraint("class_name", "subject", "academic_year", name="uq_academic_subject_class_year"),)
 
 
+class ClassModule(db.Model):
+    """A persisted curriculum module displayed on the Classes & Modules page."""
+    __tablename__ = "class_module"
+    id = db.Column(db.Integer, primary_key=True)
+    class_id = db.Column(db.Integer, db.ForeignKey("school_class.id", ondelete="CASCADE"), nullable=False, index=True)
+    code = db.Column(db.String(32), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    category = db.Column(db.String(1), nullable=False)
+    hours = db.Column(db.Integer, nullable=False, default=0)
+    teacher_id = db.Column(db.Integer, db.ForeignKey("user.id"), index=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    school_class = db.relationship("SchoolClass")
+    teacher = db.relationship("User", foreign_keys=[teacher_id])
+    __table_args__ = (
+        db.UniqueConstraint("class_id", "code", name="uq_class_module_code"),
+        db.CheckConstraint("category IN ('C', 'G', 'S')", name="ck_class_module_category"),
+        db.CheckConstraint("hours >= 0", name="ck_class_module_hours"),
+    )
+
+
 class SyllabusCoverage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     subject_id = db.Column(db.Integer, db.ForeignKey("academic_subject.id"), nullable=False, index=True)

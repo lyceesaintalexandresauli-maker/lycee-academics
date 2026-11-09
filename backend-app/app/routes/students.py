@@ -6,10 +6,11 @@ import secrets
 from io import BytesIO
 from flask import request, redirect, url_for, flash, jsonify, abort, send_file, current_app, make_response, session
 from flask_login import login_user, login_required, logout_user, current_user
+from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 from openpyxl import Workbook
 from app.extensions import db
-from app.models import User, Attendance, PendingCard, FeeTransaction, Book, BookLoan, DisciplineCase, SchoolMessage, Grade, TimetableEntry, DayScheduleEntry, Setting, StudentGuardian
+from app.models import User, Attendance, PendingCard, FeeTransaction, Book, BookLoan, DisciplineCase, SchoolMessage, Grade, TimetableEntry, DayScheduleEntry, Setting, StudentGuardian, Department, Trade, SchoolClass
 from app.utils.constants import *
 from app.utils.academic_placement import (
     is_valid_academic_placement,
@@ -21,6 +22,7 @@ from app.utils.rendering import page
 from app.utils.decorators import permission_for
 from markupsafe import escape
 from app.services.activity import log_student_activity
+from app.services.student_registration import create_manual_student
 
 def student_profile(student_id=None):
     if current_user.role == "student":
@@ -299,6 +301,95 @@ def students():
     if request.method == "POST" and current_user.role not in {"master_admin", "secretary"}:
         abort(403)
     can_register = current_user.role in {"master_admin", "secretary"}
+    manual_start_year = datetime.date.today().year if datetime.date.today().month >= 9 else datetime.date.today().year - 1
+    manual_default_year = f"{manual_start_year}-{manual_start_year + 1}"
+    manual_form_values = {
+        "full_name": "", "username": "", "password": "", "date_of_birth": "",
+        "gender": "", "academic_year": manual_default_year, "guardian_name": "",
+        "guardian_relationship": "", "guardian_phone": "", "address": "",
+        "class_name": "", "department": "", "trade": "", "level": "", "parent_id": "",
+    }
+    if request.method == "POST" and request.form.get("action") == "manual_register_student":
+        for field in manual_form_values:
+            manual_form_values[field] = request.form.get(field, "").strip()
+        password = request.form.get("password", "")
+        department = manual_form_values["department"]
+        trade = manual_form_values["trade"]
+        level = manual_form_values["level"]
+        class_name = manual_form_values["class_name"]
+        today = datetime.date.today()
+        try:
+            manual_date_of_birth = datetime.date.fromisoformat(manual_form_values["date_of_birth"])
+        except ValueError:
+            manual_date_of_birth = None
+        year_parts = manual_form_values["academic_year"].split("-")
+        valid_year = (
+            len(year_parts) == 2
+            and all(part.isdigit() and len(part) == 4 for part in year_parts)
+            and int(year_parts[1]) == int(year_parts[0]) + 1
+        )
+        phone_digits = re.sub(r"\D", "", manual_form_values["guardian_phone"])
+        guardian_phone_valid = bool(
+            re.fullmatch(r"\+?[0-9 ()-]{6,39}", manual_form_values["guardian_phone"])
+            and len(phone_digits) >= 7
+        )
+        parent_id = manual_form_values["parent_id"]
+        parent_record = db.session.get(User, int(parent_id)) if parent_id.isdigit() else None
+        class_students = User.query.filter_by(role="student", class_name=class_name).all() if class_name else []
+        class_scope_conflict = any(
+            student.trade != trade or student.level != level
+            or (student.department or student.trade) != department
+            for student in class_students
+        )
+        validation_error = None
+        if not manual_form_values["full_name"] or not manual_form_values["username"] or len(password) < 8:
+            validation_error = "Full name, username, and password (8+ chars) are required."
+        elif len(manual_form_values["full_name"]) > 160 or len(manual_form_values["username"]) > 80:
+            validation_error = "Student name or username exceeds the allowed length."
+        elif not manual_date_of_birth or manual_date_of_birth > today:
+            validation_error = "Enter a valid date of birth that is not in the future."
+        elif manual_form_values["gender"] not in {"Female", "Male", "Other"}:
+            validation_error = "Choose a valid gender."
+        elif not valid_year:
+            validation_error = "Enter a valid academic year, such as 2026-2027."
+        elif not is_valid_academic_placement(department, trade, level, class_name):
+            validation_error = "Choose a department, trade, level, and class from the available options."
+        elif class_scope_conflict:
+            validation_error = "That class name is already used by a different trade or level. Choose a unique class name."
+        elif not manual_form_values["guardian_name"] or not manual_form_values["guardian_relationship"] or not guardian_phone_valid or not manual_form_values["address"]:
+            validation_error = "Guardian name, relationship, valid phone number, and home address are required."
+        elif len(manual_form_values["guardian_name"]) > 160 or len(manual_form_values["guardian_relationship"]) > 80 or len(manual_form_values["guardian_phone"]) > 40 or len(manual_form_values["address"]) > 500:
+            validation_error = "Guardian details, phone, or address exceed the allowed length."
+        elif parent_id and (not parent_record or parent_record.role != "parent"):
+            validation_error = "Choose a valid existing parent account or leave that field blank."
+        elif User.query.filter_by(username=manual_form_values["username"]).first():
+            validation_error = "Username already exists."
+        if validation_error:
+            flash(validation_error, "danger")
+            db.session.rollback()
+        else:
+            try:
+                student = create_manual_student(
+                    {**manual_form_values, "password": password, "date_of_birth": manual_date_of_birth},
+                    current_user,
+                    parent_record,
+                )
+                log_student_activity(
+                    current_user,
+                    student,
+                    "Student manually registered",
+                    f"Student account created and enrolled in {department} / {trade} / {level} / {class_name} for {manual_form_values['academic_year']}; no RFID card was used.",
+                )
+                db.session.commit()
+                flash(f"{student.full_name} was registered and enrolled manually.", "success")
+                return redirect(url_for("students", _anchor="registered-students"))
+            except ValueError as error:
+                db.session.rollback()
+                flash(str(error), "danger")
+            except IntegrityError:
+                db.session.rollback()
+                current_app.logger.exception("Manual student registration failed")
+                flash("A student account or enrollment with these details already exists. Check the username and academic year, then try again.", "danger")
     if request.method == "POST" and request.form.get("action") == "archive_all_students":
         if request.form.get("confirmation", "").strip() != "ARCHIVE ALL STUDENTS":
             flash("Type ARCHIVE ALL STUDENTS exactly to confirm the bulk action.", "danger")
@@ -382,7 +473,7 @@ def students():
         "class_name": "", "department": "", "trade": "", "level": "",
         "parent_id": "",
     }
-    if request.method == "POST":
+    if request.method == "POST" and request.form.get("action") != "manual_register_student":
         for field in form_values:
             form_values[field] = request.form.get(field, "").strip()
         full_name = form_values["full_name"]
@@ -501,12 +592,28 @@ def students():
         student_query = student_query.filter(db.func.lower(User.class_name).in_({name.casefold() for name in teacher_assigned_classes(current_user)}))
     elif current_user.role in {"discipline", "patron", "matron"}:
         student_query = student_query.filter_by(class_name=current_user.class_name)
-    all_students = student_query.order_by(User.full_name).all()
+    all_students = student_query.order_by(db.func.lower(User.full_name), User.full_name).all()
     active_student_count = User.query.filter_by(role="student").filter(
         db.or_(User.is_active_account.is_(True), User.is_active_account.is_(None))
     ).count()
     pending = PendingCard.query.filter_by(state="Pending").order_by(PendingCard.id.desc()).all()
     parents = User.query.filter_by(role="parent").all()
+    registered_placement_catalog = json.dumps([
+        {"department": department_name, "trade": trade_name, "level": level_name, "class_name": class_name}
+        for department_name, trade_name, level_name, class_name in (
+            db.session.query(Department.name, Trade.name, SchoolClass.level, SchoolClass.name)
+            .join(Trade, Trade.department_id == Department.id)
+            .join(SchoolClass, SchoolClass.trade_id == Trade.id)
+            .filter(
+                Department.is_active.is_(True), Trade.is_active.is_(True), SchoolClass.is_active.is_(True)
+            )
+            .order_by(
+                db.func.lower(Department.name), db.func.lower(Trade.name),
+                db.func.lower(SchoolClass.level), db.func.lower(SchoolClass.name),
+            )
+            .all()
+        )
+    ], ensure_ascii=True).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
     safe_html = lambda value: str(escape(value)).replace("{", "&#123;").replace("}", "&#125;")
     student_row_items = []
@@ -535,7 +642,9 @@ def students():
                 )
         student_actions += "</div>"
         student_row_items.append(
-            f"<tr><td><a href='{profile_url}'>{safe_html(student.full_name)}</a><br><span class='pill'>{student_state}</span></td>"
+            f"<tr class='registered-student-row' data-department='{safe_html(student.department or student.trade or '')}' "
+            f"data-trade='{safe_html(student.trade or '')}' data-level='{safe_html(student.level or '')}' "
+            f"data-class='{safe_html(student.class_name or '')}'><td><a href='{profile_url}'>{safe_html(student.full_name)}</a><br><span class='pill'>{student_state}</span></td>"
             f"<td><code>{safe_html(student.sdms_code or '-')}</code></td><td>{safe_html(student.class_name or '-')}</td>"
             f"<td>{safe_html(student.department or student.trade or '-')}</td><td>{safe_html(student.trade or '-')}</td>"
             f"<td>{safe_html(student.level or '-')}</td>"
@@ -543,7 +652,9 @@ def students():
             f"<td>{safe_html(student.parent.full_name if student.parent else 'None')}</td><td>{student_actions}</td></tr>"
         )
         student_card_items.append(
-            f"<article class='registered-student-card'><div class='registered-student-card-head'>"
+            f"<article class='registered-student-card registered-student-row' data-department='{safe_html(student.department or student.trade or '')}' "
+            f"data-trade='{safe_html(student.trade or '')}' data-level='{safe_html(student.level or '')}' "
+            f"data-class='{safe_html(student.class_name or '')}'><div class='registered-student-card-head'>"
             f"<a href='{profile_url}'>{safe_html(student.full_name)}</a><span class='pill'>{student_state}</span>"
             f"<span><b>Admission No.</b> <code>{safe_html(student.sdms_code or '-')}</code></span></div>"
             f"<dl><div><dt>Department</dt><dd>{safe_html(student.department or student.trade or '-')}</dd></div>"
@@ -570,11 +681,20 @@ def students():
         f'<option value="{p.id}"{" selected" if str(p.id) == form_values["parent_id"] else ""}>{escape(p.full_name)}</option>'
         for p in parents
     )
+    manual_parent_opts = "".join(
+        f'<option value="{p.id}"{" selected" if str(p.id) == manual_form_values["parent_id"] else ""}>{escape(p.full_name)}</option>'
+        for p in parents
+    )
     gender_options = "".join(
         f'<option value="{gender}"{" selected" if gender == form_values["gender"] else ""}>{gender}</option>'
         for gender in ("Female", "Male", "Other")
     )
+    manual_gender_options = "".join(
+        f'<option value="{gender}"{" selected" if gender == manual_form_values["gender"] else ""}>{gender}</option>'
+        for gender in ("Female", "Male", "Other")
+    )
     placement_fields = render_academic_placement_fields("registration", form_values)
+    manual_placement_fields = render_academic_placement_fields("manual-registration", manual_form_values)
     pending_section = f"""<section class="panel"><div class="student-registration-header"><h1>Student <span class="accent">Registration</span></h1><p class="muted">Tap an unassigned card on the connected RFID reader while this page is open. The UID is read automatically, fills the form, and is required to save. You can also select a card from the pending list.</p><a class="btn btn-sm btn-outline-secondary mt-3" href="#registered-students">View existing students</a></div><h3 class="mt-4 pending-section-title">Pending Scanned RFID Cards</h3><div class='table-responsive'><table class="table pending-cards-table"><thead><tr><th>UID</th><th>Last Scanned</th><th>Action</th></tr></thead><tbody id='pending-rfid-rows'>{pending_rows or '<tr data-empty-row><td colspan="3" class="muted">No unregistered RFID cards are pending.</td></tr>'}</tbody></table></div><dialog id='pending-rfid-details' class='student-review-dialog'><h2>Pending RFID Card</h2><dl class='student-review-details'><dt>UID</dt><dd id='pending-card-view-uid'></dd><dt>First scanned</dt><dd id='pending-card-view-first'></dd><dt>Last scanned</dt><dd id='pending-card-view-last'></dd></dl><div class='student-review-actions'><button type='button' class='btn btn-outline-secondary' data-close-pending-card>Close</button></div></dialog></section>""" if can_register else ""
     registration_form = f"""<section class="panel"><h2>Register New Student</h2><form id="student-registration-form" method="post" class="row g-3 student-registration-form">
 <div class="col-md-6"><label class="form-label">Student Full Name</label><input name="full_name" maxlength="160" class="form-control" value="{escape(form_values['full_name'])}" required></div>
@@ -594,6 +714,22 @@ def students():
 <div class="col-12"><button class="btn btn-accent" type="submit">Review Student Details</button></div></form>
 <dialog id="student-review-dialog" class="student-review-dialog" aria-labelledby="student-review-title"><h2 id="student-review-title">Review Student Registration</h2><p class="muted">Check the details below. Confirm to create the student record and assign this RFID card. A unique admission number will be generated automatically.</p><dl id="student-review-details" class="student-review-details"></dl><p class="muted small">The temporary password is set but is not displayed here.</p><div class="student-review-actions"><button type="button" class="btn btn-outline-secondary" id="student-review-back">Back to Edit</button><button type="button" class="btn btn-accent" id="student-review-confirm">Confirm Registration</button></div></dialog></section>""" if can_register else ""
 
+    manual_registration_form = f"""<section class="panel manual-student-registration"><div class="student-registration-header"><h2>Manual Student Registration</h2><p class="muted">Create and enroll a student without scanning or assigning an RFID card. Select the student's Department, Trade, Level, and Class.</p></div><form id="manual-student-registration-form" method="post" class="row g-3 student-registration-form manual-student-registration-form">
+<input type="hidden" name="action" value="manual_register_student">
+<div class="col-md-6"><label class="form-label">Student Full Name</label><input name="full_name" maxlength="160" class="form-control" value="{escape(manual_form_values['full_name'])}" required></div>
+<div class="col-md-3"><label class="form-label">Date of Birth</label><input name="date_of_birth" type="date" max="{datetime.date.today().isoformat()}" class="form-control" value="{escape(manual_form_values['date_of_birth'])}" required></div>
+<div class="col-md-3"><label class="form-label">Gender</label><select name="gender" class="form-select" required><option value="">Choose gender...</option>{manual_gender_options}</select></div>
+<div class="col-md-4"><label class="form-label">Username</label><input name="username" maxlength="80" class="form-control" value="{escape(manual_form_values['username'])}" required></div>
+<div class="col-md-4"><label class="form-label">Temporary Password (8+ chars)</label><input name="password" type="password" minlength="8" class="form-control" required></div>
+{manual_placement_fields}
+<div class="col-md-4"><label class="form-label">Academic Year</label><input name="academic_year" maxlength="9" pattern="[0-9]{{4}}-[0-9]{{4}}" placeholder="2026-2027" class="form-control" value="{escape(manual_form_values['academic_year'])}" required></div>
+<div class="col-md-4"><label class="form-label">Guardian Full Name</label><input name="guardian_name" maxlength="160" class="form-control" value="{escape(manual_form_values['guardian_name'])}" required></div>
+<div class="col-md-4"><label class="form-label">Relationship to Student</label><input name="guardian_relationship" maxlength="80" class="form-control" value="{escape(manual_form_values['guardian_relationship'])}" placeholder="Parent, aunt, uncle..." required></div>
+<div class="col-md-4"><label class="form-label">Guardian Phone Number</label><input name="guardian_phone" type="tel" maxlength="40" pattern="\\+?[0-9 ()-]{{6,39}}" class="form-control" value="{escape(manual_form_values['guardian_phone'])}" required></div>
+<div class="col-12"><label class="form-label">Home Address</label><textarea name="address" maxlength="500" rows="2" class="form-control" required>{escape(manual_form_values['address'])}</textarea></div>
+<div class="col-md-6"><label class="form-label">Link Parent (Optional)</label><select name="parent_id" class="form-select"><option value="">Choose parent...</option>{manual_parent_opts}</select></div>
+<div class="col-12"><button class="btn btn-accent" type="submit">Register Student Manually</button></div></form></section>""" if can_register else ""
+
     status_filters = (
         "<nav class='d-flex gap-2 flex-wrap mb-3' aria-label='Student account status'>"
         f"<a class='btn btn-sm {'btn-accent' if requested_status == 'active' else 'btn-outline-secondary'}' href='{url_for('students', status='active')}'>Active</a>"
@@ -611,10 +747,10 @@ def students():
         "<button class='btn btn-outline-danger' type='submit'>Delete all active students</button></form>"
         if can_register and active_student_count > 0 and requested_status in {"active", "all"} else ""
     )
-    body = f"""<style>.student-registration-header{{margin-bottom:20px}}.student-registration-header h1{{font-size:clamp(1.5rem,2.4vw,2rem)}}.student-registration-header p{{max-width:850px;font-size:1rem;line-height:1.5;margin-bottom:0}}.pending-section-title{{font-size:1.25rem!important}}.pending-cards-table{{width:100%;margin-bottom:0}}.student-registration-form{{row-gap:1.25rem!important}}.student-registration-form .form-label{{display:block;font-weight:650;margin-bottom:.45rem}}.student-registration-form .form-control,.student-registration-form .form-select{{min-height:48px}}.student-registration-form h2{{margin-bottom:.25rem}}.student-review-dialog{{width:min(620px,calc(100vw - 28px));max-height:85vh;overflow:auto;border:1px solid var(--border);border-radius:16px;padding:22px;background:var(--card);color:var(--text)}}.student-review-dialog::backdrop{{background:rgba(5,10,15,.68)}}.student-review-dialog h2{{font-size:1.3rem;margin-bottom:8px}}.student-review-details{{display:grid;grid-template-columns:minmax(120px,.4fr) minmax(0,1fr);gap:8px 16px;margin:18px 0}}.student-review-details dt{{font-weight:700;color:var(--muted)}}.student-review-details dd{{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}}.student-review-actions{{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}}@media(max-width:480px){{.student-review-dialog{{padding:16px}}.student-review-details{{grid-template-columns:1fr;gap:2px 0}}.student-review-details dd{{margin-bottom:8px}}}}</style>{status_filters}{pending_section}
+    body = f"""<style>.student-registration-header{{margin-bottom:20px}}.student-registration-header h1{{font-size:clamp(1.5rem,2.4vw,2rem)}}.student-registration-header p{{max-width:850px;font-size:1rem;line-height:1.5;margin-bottom:0}}.pending-section-title{{font-size:1.25rem!important}}.pending-cards-table{{width:100%;margin-bottom:0}}.student-registration-form{{row-gap:1.25rem!important}}.student-registration-form .form-label{{display:block;font-weight:650;margin-bottom:.45rem}}.student-registration-form .form-control,.student-registration-form .form-select{{min-height:48px}}.student-registration-form h2{{margin-bottom:.25rem}}.student-review-dialog{{width:min(620px,calc(100vw - 28px));max-height:85vh;overflow:auto;border:1px solid var(--border);border-radius:16px;padding:22px;background:var(--card);color:var(--text)}}.student-review-dialog::backdrop{{background:rgba(5,10,15,.68)}}.student-review-dialog h2{{font-size:1.3rem;margin-bottom:8px}}.student-review-details{{display:grid;grid-template-columns:minmax(120px,.4fr) minmax(0,1fr);gap:8px 16px;margin:18px 0}}.student-review-details dt{{font-weight:700;color:var(--muted)}}.student-review-details dd{{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}}.student-review-actions{{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}}@media(max-width:480px){{.student-review-dialog{{padding:16px}}.student-review-details{{grid-template-columns:1fr;gap:2px 0}}.student-review-details dd{{margin-bottom:8px}}}}</style>{status_filters}{manual_registration_form}{pending_section}
 {registration_form}
 {bulk_archive_form}
-<section class="panel registered-students-panel" id="registered-students"><h2>Registered Students</h2><p class="muted">View the full profile, edit student details, or delete the account from active records while retaining attendance and academic history.</p><div class="table-responsive registered-students-table"><table class="table"><thead><tr><th>Name / Status</th><th>Admission Number</th><th>Class</th><th>Department</th><th>Trade</th><th>Level</th><th>RFID UID</th><th>Parent</th><th>Actions</th></tr></thead><tbody>{student_rows or '<tr><td colspan="9" class="muted">No students match this status.</td></tr>'}</tbody></table></div><div class="registered-student-cards">{student_cards or '<p class="muted mb-0">No students match this status.</p>'}</div></section>"""
+<section class="panel registered-students-panel" id="registered-students"><h2>School Students</h2><p class="muted">Filter registered students by their assigned Department, Trade, Level, and Class. Each student remains attached to their own placement.</p><div class="row g-3 mb-3" id="registered-student-filters"><div class="col-md-3"><label class="form-label" for="registered-filter-department">Department</label><select class="form-select" id="registered-filter-department"><option value="">All departments</option></select></div><div class="col-md-3"><label class="form-label" for="registered-filter-trade">Trade</label><select class="form-select" id="registered-filter-trade" disabled><option value="">Choose department first...</option></select></div><div class="col-md-3"><label class="form-label" for="registered-filter-level">Level</label><select class="form-select" id="registered-filter-level" disabled><option value="">Choose trade first...</option></select></div><div class="col-md-3"><label class="form-label" for="registered-filter-class">Class</label><select class="form-select" id="registered-filter-class" disabled><option value="">Choose level first...</option></select></div><div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2"><span class="muted" id="registered-student-count" aria-live="polite"></span><button class="btn btn-sm btn-outline-secondary" id="clear-registered-student-filters" type="button">Clear filters</button></div></div><div class="table-responsive registered-students-table"><table class="table"><thead><tr><th>Name / Status</th><th>Admission Number</th><th>Class</th><th>Department</th><th>Trade</th><th>Level</th><th>RFID UID</th><th>Parent</th><th>Actions</th></tr></thead><tbody id="registered-student-rows">{student_rows or '<tr><td colspan="9" class="muted">No students match this status.</td></tr>'}<tr id="registered-student-no-match" hidden><td colspan="9" class="muted">No registered students match this placement.</td></tr></tbody></table></div><div class="registered-student-cards" id="registered-student-card-list">{student_cards or '<p class="muted mb-0">No students match this status.</p>'}<p id="registered-student-card-no-match" class="muted mb-0" hidden>No registered students match this placement.</p></div></section>"""
     body = """<style>
 .student-registration-picker{position:relative;min-width:0;width:100%}
 .student-registration-picker-source{display:none!important}
@@ -625,8 +761,8 @@ def students():
 .student-registration-picker-option:hover,.student-registration-picker-option[aria-selected="true"]{background:color-mix(in srgb,var(--green-700) 12%,var(--card))}
 </style>""" + body
     body += """<script>(()=>{
-const form=document.querySelector('.student-registration-form');
-if(!form)return;
+const forms=[...document.querySelectorAll('.student-registration-form')];
+if(!forms.length)return;
 const controls=new Set();
 let nextId=0;
 function enhance(select){
@@ -683,9 +819,60 @@ select.addEventListener('change',sync);
 const observer=new MutationObserver(sync);observer.observe(select,{childList:true,subtree:true,attributes:true,attributeFilter:['disabled']});
 const control={wrapper,close};controls.add(control);sync();
 }
-form.querySelectorAll('select').forEach(enhance);
+forms.forEach(form=>form.querySelectorAll('select').forEach(enhance));
 document.addEventListener('pointerdown',event=>controls.forEach(control=>{if(!control.wrapper.contains(event.target))control.close()}));
 })();</script>"""
+    body += """<script>(()=>{
+const root=document.getElementById('registered-student-filters');
+const tableBody=document.getElementById('registered-student-rows');
+if(!root||!tableBody)return;
+const catalog=__PLACEMENT_CATALOG__;
+const students=[...tableBody.querySelectorAll('.registered-student-row')];
+const cards=[...document.querySelectorAll('#registered-student-card-list .registered-student-row')];
+const department=document.getElementById('registered-filter-department');
+const trade=document.getElementById('registered-filter-trade');
+const level=document.getElementById('registered-filter-level');
+const className=document.getElementById('registered-filter-class');
+const count=document.getElementById('registered-student-count');
+const noMatch=document.getElementById('registered-student-no-match');
+const cardNoMatch=document.getElementById('registered-student-card-no-match');
+function unique(values){return [...new Set(values.filter(Boolean))].sort((a,b)=>a.localeCompare(b))}
+function fill(select,values,placeholder,enabled){
+select.replaceChildren(new Option(placeholder,''),...unique(values).map(value=>new Option(value,value)));
+select.disabled=!enabled;
+}
+function applyFilters(){
+const selected={department:department.value,trade:trade.value,level:level.value,class:className.value};
+const matches=students.filter(row=>Object.entries(selected).every(([key,value])=>!value||row.dataset[key]===value));
+const matchedRows=new Set(matches);
+students.forEach(row=>row.hidden=!matchedRows.has(row));
+cards.forEach(card=>{card.hidden=!Object.entries(selected).every(([key,value])=>!value||card.dataset[key]===value)});
+const hasFilter=Object.values(selected).some(Boolean);
+if(count)count.textContent=matches.length+' registered student'+(matches.length===1?'':'s')+' shown';
+if(noMatch)noMatch.hidden=!hasFilter||matches.length>0;
+if(cardNoMatch)cardNoMatch.hidden=!hasFilter||matches.length>0;
+}
+function updateTrades(){
+fill(trade,catalog.filter(item=>item.department===department.value).map(item=>item.trade),'Choose trade...',Boolean(department.value));
+fill(level,[],'Choose trade first...',false);fill(className,[],'Choose level first...',false);applyFilters();
+}
+function updateLevels(){
+fill(level,catalog.filter(item=>item.department===department.value&&item.trade===trade.value).map(item=>item.level),'Choose level...',Boolean(trade.value));
+fill(className,[],'Choose level first...',false);applyFilters();
+}
+function updateClasses(){
+fill(className,catalog.filter(item=>item.department===department.value&&item.trade===trade.value&&item.level===level.value).map(item=>item.class_name),'Choose class...',Boolean(level.value));
+applyFilters();
+}
+fill(department,catalog.map(item=>item.department),'All departments',true);
+trade.addEventListener('change',()=>{level.value='';className.value='';updateLevels()});
+level.addEventListener('change',()=>{className.value='';updateClasses()});
+department.addEventListener('change',()=>{trade.value='';level.value='';className.value='';updateTrades()});
+document.getElementById('clear-registered-student-filters')?.addEventListener('click',()=>{
+department.value='';department.dispatchEvent(new Event('change',{bubbles:true}));
+});
+applyFilters();
+})();</script>""".replace("__PLACEMENT_CATALOG__", registered_placement_catalog)
     body += """<script>(()=>{
 const rows=document.getElementById('pending-rfid-rows');
 const uidInput=document.getElementById('uid');
@@ -745,7 +932,7 @@ finally{polling=false;}
 refreshPendingCards();window.setInterval(refreshPendingCards,2000);
 })();</script>"""
     body += """<script>(()=>{
-const form=document.querySelector('.student-registration-form');
+const form=document.getElementById('student-registration-form');
 const dialog=document.getElementById('student-review-dialog');
 const details=document.getElementById('student-review-details');
 if(!form||!dialog||!details)return;

@@ -13,7 +13,7 @@ from .assessment import Assessment, AssessmentQuestion, AssessmentSubmission, As
 from .rubric import GradingRubric, GradingRubricCriterion
 from .parent_notifications import ParentNotificationPreference
 from .learning_material import LearningMaterial
-from .academics import Grade, TimetableEntry, DayScheduleEntry, AcademicSubject, SyllabusCoverage, LessonPlan, ReportCardApproval
+from .academics import Grade, TimetableEntry, DayScheduleEntry, AcademicSubject, ClassModule, SyllabusCoverage, LessonPlan, ReportCardApproval
 from .setting import Setting
 from .admission import AdmissionApplicant
 from .student_document import StudentDocument
@@ -39,7 +39,7 @@ __all__ = [
     "OfficialNotice", "OfficialNoticeAuditEvent", "Assessment", "AssessmentQuestion",
     "AssessmentSubmission", "AssessmentAttempt", "GradingRubric",
     "GradingRubricCriterion", "ParentNotificationPreference", "LearningMaterial",
-    "Grade", "TimetableEntry", "DayScheduleEntry", "AcademicSubject",
+    "Grade", "TimetableEntry", "DayScheduleEntry", "AcademicSubject", "ClassModule",
     "SyllabusCoverage", "LessonPlan", "ReportCardApproval", "Setting",
     "AdmissionApplicant", "StudentDocument", "Appointment", "StudentGuardian",
     "Meeting", "MeetingParticipant", "MeetingAttendance", "MeetingAgendaItem",
