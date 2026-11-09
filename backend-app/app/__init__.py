@@ -18,6 +18,7 @@ from migrations.versions.v20261029_02_add_behavior_records import upgrade as upg
 from migrations.versions.v20261031_01_academic_foundation import upgrade as upgrade_academic_foundation
 from migrations.versions.v20261031_02_rfid_authoritative_foundation import upgrade as upgrade_rfid_authoritative_foundation
 from migrations.versions.v20261102_01_remove_class_section import upgrade as upgrade_remove_class_section
+from migrations.versions.v20261105_01_fee_reconciliation_and_rfid_secret import upgrade as upgrade_fee_reconciliation_and_rfid_secret
 
 def create_app(config_class=Config):
     app = Flask(__name__, static_folder="static", template_folder="templates")
@@ -68,6 +69,7 @@ def create_app(config_class=Config):
             upgrade_behavior_records(connection)
             upgrade_academic_foundation(connection)
             upgrade_rfid_authoritative_foundation(connection)
+            upgrade_fee_reconciliation_and_rfid_secret(connection)
             upgrade_remove_class_section(connection)
         if inspect(db.engine).has_table("user"):
             db.metadata.create_all(

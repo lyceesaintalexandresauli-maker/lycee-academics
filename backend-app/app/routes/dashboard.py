@@ -192,7 +192,8 @@ def dashboard():
         for days_ago in range(6, -1, -1):
             day = today - datetime.timedelta(days=days_ago)
             day_sum = db.session.query(db.func.coalesce(db.func.sum(FeeTransaction.amount), 0)).filter(
-                FeeTransaction.created_at.like(f"{day.isoformat()}%")
+                FeeTransaction.created_at.like(f"{day.isoformat()}%"),
+                FeeTransaction.reconciliation_status == "confirmed",
             ).scalar()
             amount = float(day_sum or 0)
             finance_labels.append(day.strftime("%a").upper())
@@ -502,7 +503,7 @@ def dashboard():
         body=f"""<div class='dashboard-heading'><div><span class='pill'>TEACHER WORKSPACE</span><h1 class='mt-2'>Welcome, <span class='accent'>{current_user.full_name}</span></h1><p>Manage attendance, students, timetables and academic records.</p></div></div><section class='grid mb-4'><div class='stat'><div class='stat-top'><span class='stat-icon'><i class='bi bi-people'></i></span></div><div class='stat-value'>{students_count}</div><div class='stat-label'>Students</div></div><div class='stat'><div class='stat-top'><span class='stat-icon'><i class='bi bi-calendar-check'></i></span></div><div class='stat-value'>{attendance_count}</div><div class='stat-label'>Attendance records today</div></div><div class='stat'><div class='stat-top'><span class='stat-icon'><i class='bi bi-journal-check'></i></span></div><div class='stat-value'>{grades_count}</div><div class='stat-label'>Grades entered by you</div></div><a class='stat text-decoration-none' href='/assessments'><div class='stat-top'><span class='stat-icon'><i class='bi bi-clipboard-data'></i></span></div><div class='stat-value'>{completion_rate}</div><div class='stat-label'>Assessment completion</div><div class='stat-note'>Average graded score: {average_assessment_grade}</div></a></section><section class='panel'><h2>Quick Actions</h2><div class='row g-3 mt-1'><div class='col-md-3'><a class='quick-link' href='/attendance'><i class='bi bi-calendar-check'></i><strong>Attendance</strong></a></div><div class='col-md-3'><a class='quick-link' href='/students'><i class='bi bi-people'></i><strong>Students</strong></a></div><div class='col-md-3'><a class='quick-link' href='/grades'><i class='bi bi-journal-text'></i><strong>Report Cards</strong></a></div><div class='col-md-3'><a class='quick-link' href='/timetable'><i class='bi bi-calendar3'></i><strong>Timetable</strong></a></div><div class='col-md-3'><a class='quick-link' href='/assessments'><i class='bi bi-clipboard-data'></i><strong>Assessment Analytics</strong></a></div></div></section>"""
         return page("Teacher Dashboard",body,"teacher")
     if role == "accountant":
-        tx_count=FeeTransaction.query.count(); total_paid=sum((t.amount or 0) for t in FeeTransaction.query.all())
+        tx_count=FeeTransaction.query.count(); total_paid=sum((t.amount or 0) for t in FeeTransaction.query.filter_by(reconciliation_status="confirmed").all())
         return page("Accountant Dashboard",f"""<div class='dashboard-heading'><div><span class='pill'>FINANCE</span><h1 class='mt-2'>Fee <span class='accent'>Management</span></h1><p>Manage payments and review financial transactions saved in the system.</p></div></div><section class='grid mb-4'><div class='stat'><div class='stat-top'><span class='stat-icon'><i class='bi bi-receipt'></i></span></div><div class='stat-value'>{tx_count}</div><div class='stat-label'>Fee Transactions</div></div><div class='stat'><div class='stat-top'><span class='stat-icon'><i class='bi bi-cash-stack'></i></span></div><div class='stat-value'>{total_paid:,.0f}</div><div class='stat-label'>Total Amount Recorded (RWF)</div></div></section><section class='panel'><a class='btn btn-accent' href='/fees'><i class='bi bi-cash-stack me-1'></i> Open Fee Records</a></section>""","accountant")
     if role == "librarian":
         books=Book.query.count(); available=sum((b.available or 0) for b in Book.query.all())
@@ -610,7 +611,7 @@ def parent_child(student_id):
         abort(403)
     records = attendance_for_student(student.id)
     txs = FeeTransaction.query.filter_by(student_id=student.id).all()
-    total_paid = sum(t.amount for t in txs)
+    total_paid = sum(t.amount for t in txs if (t.reconciliation_status or "confirmed") == "confirmed")
     fee_requirements = FeeRequirement.query.filter_by(student_id=student.id).order_by(FeeRequirement.due_date).all()
     total_required = sum(requirement.amount for requirement in fee_requirements)
     balance_remaining = max(0.0, total_required - total_paid)
@@ -620,7 +621,7 @@ def parent_child(student_id):
     att_rows = "".join(f"<tr><td>{a.day}</td><td><span class='pill'>{a.status}</span></td><td>{a.arrival_time or '-'}</td><td>{a.afternoon_time or '-'}</td><td>{a.source or 'Manual'}</td></tr>" for a in records)
     attendance_counts = {status: sum(1 for record in records if record.status == status) for status in ("Present", "Absent", "Late")}
     attendance_summary = "".join(f"<div class='stat'><div class='stat-value'>{attendance_counts[status]}</div><div class='stat-label'>{status} days</div></div>" for status in ("Present", "Absent", "Late"))
-    tx_rows = "".join(f"<tr><td>{t.created_at}</td><td>{t.amount:,.2f} RWF</td><td>{t.method}</td><td>{t.reference or '-'}</td></tr>" for t in txs)
+    tx_rows = "".join(f"<tr><td>{escape(t.created_at)}</td><td>{t.amount:,.2f} RWF ({escape((t.reconciliation_status or 'confirmed').title())})</td><td>{escape(t.method)}</td><td>{escape(t.reference or '-')}</td></tr>" for t in txs)
     fee_rows = "".join(f"<tr><td>{requirement.title}</td><td>{requirement.amount:,.2f} RWF</td><td>{requirement.due_date.isoformat()}</td><td>{requirement.details or '-'}</td></tr>" for requirement in fee_requirements)
     book_loan_rows = "".join(f"<tr><td>{loan.book.title if loan.book else '-'}</td><td>{loan.borrowed_date.isoformat()}</td><td>{loan.due_date.isoformat()}</td><td>{loan.returned_date.isoformat() if loan.returned_date else '-'}</td><td>{'Returned' if loan.returned_date else 'Overdue' if loan.due_date < datetime.date.today() else 'Borrowed'}</td></tr>" for loan in book_loans)
     discipline_rows = "".join(f"<tr><td>{escape(case.created_at)}</td><td>{escape(case.record_type or 'Concern')}</td><td>{escape(case.details)}</td><td>{escape(case.action_taken or '-')}</td><td>{escape(case.remarks or '-')}</td></tr>" for case in discipline_cases)

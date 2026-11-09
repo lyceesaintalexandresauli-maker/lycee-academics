@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.extensions import db
-from app.models import Attendance, User, UserNotification
+from app.models import Attendance, RFIDScanLog, User, UserNotification
 from app.routes import rfid as rfid_routes
 from app.services.attendance_service import (
     class_attendance_summary,
@@ -13,6 +13,13 @@ from app.services.attendance_service import (
     reconcile_daily_absences,
 )
 from app.utils.helpers import set_setting
+
+
+RFID_TEST_TOKEN = "test-device-secret"
+RFID_TEST_HEADERS = {
+    "X-Device-Token": RFID_TEST_TOKEN,
+    "X-Device-Id": "TEST_READER_1",
+}
 
 
 def add_student(username, full_name, class_name):
@@ -52,6 +59,7 @@ def test_rfid_scan_uses_configured_cutoff(app, monkeypatch, scan_clock, expected
             return cls(2026, 10, 24, hour, minute)
 
     monkeypatch.setattr(rfid_routes, "datetime", SimpleNamespace(datetime=FrozenDateTime))
+    app.config["RFID_DEVICE_TOKEN"] = RFID_TEST_TOKEN
     with app.app_context():
         student = add_student("scan_student", "Scan Student", "Class 7A")
         student.rfid_uid = "EARLY-LATE-UID"
@@ -60,12 +68,28 @@ def test_rfid_scan_uses_configured_cutoff(app, monkeypatch, scan_clock, expected
         set_setting("afternoon_start", "16:00")
         set_setting("afternoon_end", "16:30")
 
-    response = app.test_client().post("/student/rfid-login", json={"uid": "EARLY-LATE-UID"})
+    response = app.test_client().post("/student/rfid-login", json={"uid": "EARLY-LATE-UID"}, headers=RFID_TEST_HEADERS)
 
     assert response.status_code == 200
     assert response.get_json()["attendance_status"] == expected
     assert response.get_json()["server_time"] == scan_clock
     assert response.get_json()["late_after"] == "08:00"
+    duplicate_response = app.test_client().post(
+        "/student/rfid-login",
+        json={"uid": "EARLY-LATE-UID"},
+        headers=RFID_TEST_HEADERS,
+    )
+    assert duplicate_response.status_code == 200
+    with app.app_context():
+        scans = RFIDScanLog.query.order_by(RFIDScanLog.id).all()
+        assert len(scans) == 2
+        scan = scans[0]
+        assert scan.card_uid == "EARLY-LATE-UID"
+        assert scan.student_id is not None
+        assert scan.device_id == "TEST_READER_1"
+        assert scan.status_result == expected
+        assert scan.session_name == "morning"
+        assert scans[1].is_duplicate is True
 
 
 def test_late_rfid_scan_queues_in_app_alerts_for_student_family_and_staff(app, monkeypatch):
@@ -75,6 +99,7 @@ def test_late_rfid_scan_queues_in_app_alerts_for_student_family_and_staff(app, m
             return cls(2026, 10, 24, 8, 6)
 
     monkeypatch.setattr(rfid_routes, "datetime", SimpleNamespace(datetime=FrozenDateTime))
+    app.config["RFID_DEVICE_TOKEN"] = RFID_TEST_TOKEN
     with app.app_context():
         parent = User(
             username="late_student_parent",
@@ -112,6 +137,7 @@ def test_late_rfid_scan_queues_in_app_alerts_for_student_family_and_staff(app, m
     response = app.test_client().post(
         "/student/rfid-login",
         json={"uid": "LATE-NOTIFICATION-UID"},
+        headers=RFID_TEST_HEADERS,
     )
 
     assert response.status_code == 200
@@ -180,6 +206,7 @@ def test_rfid_rescan_corrects_todays_late_record_after_cutoff_change(app, monkey
             return cls(2026, 10, 24, 7, 50)
 
     monkeypatch.setattr(rfid_routes, "datetime", SimpleNamespace(datetime=FrozenDateTime))
+    app.config["RFID_DEVICE_TOKEN"] = RFID_TEST_TOKEN
     with app.app_context():
         student = add_student("corrected_student", "Corrected Student", "Class 7A")
         student.rfid_uid = "CORRECTED-UID"
@@ -195,7 +222,7 @@ def test_rfid_rescan_corrects_todays_late_record_after_cutoff_change(app, monkey
         set_setting("afternoon_start", "16:00")
         set_setting("afternoon_end", "16:30")
 
-    response = app.test_client().post("/student/rfid-login", json={"uid": "CORRECTED-UID"})
+    response = app.test_client().post("/student/rfid-login", json={"uid": "CORRECTED-UID"}, headers=RFID_TEST_HEADERS)
 
     assert response.status_code == 200
     assert response.get_json()["attendance_status"] == "Present"
@@ -209,7 +236,7 @@ def test_rfid_class_status_requires_device_token(app):
 
 
 def test_rfid_scan_requires_the_configured_device_token(app):
-    app.config["RFID_DEVICE_TOKEN"] = "test-device-secret"
+    app.config["RFID_DEVICE_TOKEN"] = RFID_TEST_TOKEN
     client = app.test_client()
 
     rejected = client.post("/student/rfid-login", json={"uid": "TEST-UID"})
@@ -219,10 +246,16 @@ def test_rfid_scan_requires_the_configured_device_token(app):
     accepted = client.post(
         "/student/rfid-login",
         json={"uid": "TEST-UID"},
-        headers={"X-Device-Token": "test-device-secret"},
+        headers=RFID_TEST_HEADERS,
     )
     assert accepted.status_code == 202
     assert accepted.get_json()["status"] == "pending_registration"
+    with app.app_context():
+        scan = RFIDScanLog.query.one()
+        assert scan.card_uid == "TEST-UID"
+        assert scan.student_id is None
+        assert scan.device_id == "TEST_READER_1"
+        assert scan.status_result == "PendingRegistration"
 
 
 def test_rfid_class_status_rejects_other_classes(app):

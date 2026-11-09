@@ -8,8 +8,13 @@ class FeeTransaction(db.Model):
     method = db.Column(db.String(40), default="Cash")
     reference = db.Column(db.String(100))
     created_at = db.Column(db.String(19), nullable=False)
-    student = db.relationship("User", backref="fee_transactions")
+    reconciliation_status = db.Column(db.String(20), nullable=False, default="confirmed")
+    reconciled_by_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    reconciled_at = db.Column(db.String(26))
+    reconciliation_note = db.Column(db.Text)
+    student = db.relationship("User", foreign_keys=[student_id], backref="fee_transactions")
     requirement = db.relationship("FeeRequirement", backref="payments")
+    reconciled_by = db.relationship("User", foreign_keys=[reconciled_by_id])
 
 
 class FeeRequirement(db.Model):

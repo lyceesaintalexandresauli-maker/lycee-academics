@@ -22,6 +22,24 @@ def fees():
         abort(403)
     if request.method == "POST":
         action = request.form.get("action", "record_payment")
+        if action == "reconcile_payment":
+            if not can_manage:
+                abort(403)
+            transaction = db.session.get(FeeTransaction, request.form.get("transaction_id", type=int))
+            decision = request.form.get("decision", "").strip().lower()
+            note = request.form.get("reconciliation_note", "").strip()
+            if not transaction or transaction.reconciliation_status != "pending" or decision not in {"confirmed", "rejected"}:
+                abort(400)
+            if decision == "rejected" and not note:
+                flash("Add a reason before rejecting a payment.", "danger")
+                return redirect(url_for("fees"))
+            transaction.reconciliation_status = decision
+            transaction.reconciled_by_id = current_user.id
+            transaction.reconciled_at = now_string()
+            transaction.reconciliation_note = note or None
+            db.session.commit()
+            flash(f"Payment {decision}.", "success")
+            return redirect(url_for("fees"))
         student_id = request.form.get("student_id", type=int)
         student = db.session.get(User, student_id) if student_id else None
         if not student or student.role != "student":
@@ -62,7 +80,7 @@ def fees():
             else:
                 tx = FeeTransaction(student_id=student.id, requirement_id=requirement_id,
                                     amount=amount, method=method, reference=reference,
-                                    created_at=now_string())
+                                    created_at=now_string(), reconciliation_status="pending")
                 db.session.add(tx)
                 db.session.commit()
                 flash("Fee payment recorded successfully.", "success")
@@ -82,11 +100,24 @@ def fees():
     student_options = "".join(f"<option value='{s.id}'>{s.full_name} ({s.class_name or 'No class'})</option>" for s in students)
     all_requirements = FeeRequirement.query.order_by(FeeRequirement.due_date, FeeRequirement.title).all() if can_manage else requirements
     requirement_options = "".join(f"<option value='{r.id}'>{escape(r.student.full_name if r.student else '-')} — {escape(r.title)} ({r.amount:,.2f} RWF)</option>" for r in all_requirements)
-    tx_rows = "".join(f"<tr><td>{escape(t.created_at)}</td><td>{escape(t.student.full_name if t.student else '-')}</td><td>{escape(t.requirement.title if t.requirement else 'Unallocated')}</td><td>{t.amount:,.2f} RWF</td><td>{escape(t.method)}</td><td>{escape(t.reference or '-')}</td></tr>" for t in transactions)
+    tx_rows_list = []
+    for transaction in transactions:
+        status = transaction.reconciliation_status or "confirmed"
+        action_cell = ""
+        if can_manage and status == "pending":
+            action_cell = f"<td><form method='post' class='d-flex gap-1'><input type='hidden' name='action' value='reconcile_payment'><input type='hidden' name='transaction_id' value='{transaction.id}'><input class='form-control form-control-sm' name='reconciliation_note' placeholder='Reason if rejecting'><button class='btn btn-sm btn-success' name='decision' value='confirmed'>Confirm</button><button class='btn btn-sm btn-outline-danger' name='decision' value='rejected'>Reject</button></form></td>"
+        else:
+            reconciled_by = transaction.reconciled_by.full_name if transaction.reconciled_by else "-"
+            reconciliation_details = f"{reconciled_by} · {transaction.reconciled_at or '-'} · {transaction.reconciliation_note or '-'}"
+            action_cell = f"<td>{escape(reconciliation_details)}</td>"
+        tx_rows_list.append(f"<tr><td>{escape(transaction.created_at)}</td><td>{escape(transaction.student.full_name if transaction.student else '-')}</td><td>{escape(transaction.requirement.title if transaction.requirement else 'Unallocated')}</td><td>{transaction.amount:,.2f} RWF</td><td>{escape(transaction.method)}</td><td>{escape(transaction.reference or '-')}</td><td>{escape(status.title())}</td>{action_cell}</tr>")
+    tx_rows = "".join(tx_rows_list)
     paid_by_student = {}
     due_by_student = {}
     paid_by_requirement = {}
     for transaction in transactions:
+        if (transaction.reconciliation_status or "confirmed") != "confirmed":
+            continue
         paid_by_student[transaction.student_id] = paid_by_student.get(transaction.student_id, 0) + (transaction.amount or 0)
         if transaction.requirement_id:
             paid_by_requirement[transaction.requirement_id] = paid_by_requirement.get(transaction.requirement_id, 0) + (transaction.amount or 0)
@@ -104,7 +135,7 @@ def fees():
     body = f"""<section class="panel"><h1>School <span class="accent">Fees</span></h1><p class="muted">Requirements, paid amounts, outstanding balances, payment deadlines, and transaction history.</p></section>
 {requirement_form}<section class="panel"><h2>Fee Balance Summary</h2><div class="table-responsive"><table class="table"><tr><th>Student</th><th>Required</th><th>Paid</th><th>Outstanding</th></tr>{''.join(balance_rows) or '<tr><td colspan="4" class="muted">No fee records are available.</td></tr>'}</table></div></section>
 <section class="panel"><h2>Fee Requirements & Deadlines</h2><div class="table-responsive"><table class="table fee-requirements-table"><tr><th>Student</th><th>Requirement</th><th>Required</th><th>Paid to Requirement</th><th>Outstanding</th><th>Deadline</th><th>Status</th><th>Details</th></tr>{requirement_rows or '<tr><td colspan="8" class="muted">No fee requirements have been entered.</td></tr>'}</table></div></section>
-<section class="panel"><h2>Payment History</h2><div class="table-responsive"><table class="table"><tr><th>Date</th><th>Student</th><th>Requirement</th><th>Amount Paid</th><th>Method</th><th>Reference</th></tr>{tx_rows or '<tr><td colspan="6" class="muted">No payments have been recorded.</td></tr>'}</table></div></section>"""
+<section class="panel"><h2>Payment History</h2><p class="muted">New entries remain pending until an accountant or administrator reconciles them. Only confirmed payments reduce balances.</p><div class="table-responsive"><table class="table"><tr><th>Date</th><th>Student</th><th>Requirement</th><th>Amount</th><th>Method</th><th>Reference</th><th>Status</th><th>Reconciliation</th></tr>{tx_rows or '<tr><td colspan="8" class="muted">No payments have been recorded.</td></tr>'}</table></div></section>"""
     return page("Fees", body, "accountant")
 
 def register_routes(app):

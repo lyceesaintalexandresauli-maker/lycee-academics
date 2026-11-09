@@ -8,14 +8,16 @@ from markupsafe import escape
 from openpyxl import Workbook
 
 from app.extensions import db
-from app.models import AdmissionApplicant, Attendance, PendingCard, User, ActivityLog, Appointment, SchoolMessage
+from app.models import (AdmissionApplicant, Attendance, PendingCard, User, ActivityLog,
+                        Appointment, SchoolMessage, AcademicEnrollment, AcademicYear,
+                        Department, Trade, SchoolClass, RFIDScanLog, AttendanceAuditTrail)
 from app.utils.decorators import permission_for
 from app.utils.helpers import now_string
 from app.utils.notifications import notify_users
 from app.utils.rendering import page
 
 
-REPORT_TYPES = {"students", "admissions", "attendance", "cards"}
+REPORT_TYPES = {"students", "admissions", "attendance", "attendance_audit", "cards", "enrollments"}
 SUMMARY_PERIODS = {"daily", "weekly", "monthly", "yearly"}
 
 
@@ -125,6 +127,9 @@ def reports():
     if report_type not in REPORT_TYPES:
         abort(400)
     class_name = request.args.get("class_name", "").strip()
+    academic_year_id = request.args.get("academic_year_id", type=int)
+    department_id = request.args.get("department_id", type=int)
+    trade_id = request.args.get("trade_id", type=int)
     date_from = request.args.get("date_from", "").strip()
     date_to = request.args.get("date_to", "").strip()
     for value in (date_from, date_to):
@@ -137,7 +142,29 @@ def reports():
     if date_from and date_to and date_from > date_to:
         abort(400)
 
-    if report_type == "students":
+    if report_type == "enrollments":
+        headers = ["Academic Year", "Student", "Department", "Trade", "Class", "Status", "Start", "End"]
+        query = (AcademicEnrollment.query
+                 .join(User, AcademicEnrollment.student_id == User.id)
+                 .join(AcademicYear, AcademicEnrollment.academic_year_id == AcademicYear.id)
+                 .join(Department, AcademicEnrollment.department_id == Department.id)
+                 .join(Trade, AcademicEnrollment.trade_id == Trade.id)
+                 .join(SchoolClass, AcademicEnrollment.class_id == SchoolClass.id))
+        if academic_year_id:
+            query = query.filter(AcademicEnrollment.academic_year_id == academic_year_id)
+        if department_id:
+            query = query.filter(AcademicEnrollment.department_id == department_id)
+        if trade_id:
+            query = query.filter(AcademicEnrollment.trade_id == trade_id)
+        if class_name:
+            query = query.filter(SchoolClass.name == class_name)
+        records = query.order_by(AcademicYear.name.desc(), Department.name, Trade.name, SchoolClass.name, User.full_name).all()
+        rows = [[record.academic_year.name, record.student.full_name, record.department.name,
+                 record.trade.name, record.school_class.name, record.status,
+                 record.start_date.isoformat() if record.start_date else "",
+                 record.end_date.isoformat() if record.end_date else ""] for record in records]
+        title = "Academic Enrollment History"
+    elif report_type == "students":
         headers = ["Student", "SDMS Code", "Department", "Trade", "Level", "Class", "RFID Card"]
         query = User.query.filter_by(role="student")
         if class_name:
@@ -156,6 +183,41 @@ def reports():
             applications = [item for item in applications if item.applied_at.strftime("%Y-%m-%d") <= date_to]
         rows = [[a.full_name, a.guardian_name or "", a.phone or "", a.email or "", a.desired_department or a.desired_trade, a.desired_trade, a.desired_level, a.desired_class, a.documents_submitted or "", "Yes" if a.documents_verified else "No", a.status, a.applied_at.strftime("%Y-%m-%d")] for a in applications]
         title = "Admissions Report"
+    elif report_type == "attendance_audit":
+        headers = ["Date", "Time", "Student", "Class", "Event", "Previous Status", "Result", "Source / Device", "Reason"]
+        rows = []
+        scans_query = RFIDScanLog.query.outerjoin(User, RFIDScanLog.student_id == User.id)
+        if class_name:
+            scans_query = scans_query.filter(User.class_name == class_name)
+        if date_from:
+            scans_query = scans_query.filter(RFIDScanLog.day >= date_from)
+        if date_to:
+            scans_query = scans_query.filter(RFIDScanLog.day <= date_to)
+        for scan in scans_query.order_by(RFIDScanLog.day.desc(), RFIDScanLog.scanned_at.desc()).all():
+            rows.append([scan.day, scan.scan_clock, scan.student.full_name if scan.student else "Unknown card",
+                         scan.student.class_name if scan.student else "", "RFID scan", "",
+                         scan.status_result, scan.device_id or "Unregistered device", scan.message or ""])
+
+        corrections_query = AttendanceAuditTrail.query.join(
+            User, AttendanceAuditTrail.student_id == User.id
+        )
+        if class_name:
+            corrections_query = corrections_query.filter(User.class_name == class_name)
+        if date_from:
+            corrections_query = corrections_query.filter(AttendanceAuditTrail.day >= date_from)
+        if date_to:
+            corrections_query = corrections_query.filter(AttendanceAuditTrail.day <= date_to)
+        for correction in corrections_query.order_by(
+            AttendanceAuditTrail.day.desc(), AttendanceAuditTrail.changed_at.desc()
+        ).all():
+            rows.append([correction.day, correction.changed_at[11:19],
+                         correction.student.full_name if correction.student else "Unknown student",
+                         correction.student.class_name if correction.student else "",
+                         "Attendance correction", correction.old_status or "Not recorded",
+                         correction.new_status, correction.new_source,
+                         f"{correction.reason} (by {correction.changer.full_name if correction.changer else 'unknown'})"])
+        rows.sort(key=lambda row: (row[0], row[1]), reverse=True)
+        title = "Attendance Scan and Correction Audit"
     elif report_type == "attendance":
         headers = ["Date", "Student", "Department", "Trade", "Level", "Class", "Status", "Arrival", "Afternoon Scan", "Source"]
         query = Attendance.query.join(User, Attendance.student_id == User.id)
@@ -198,10 +260,12 @@ def reports():
         output.seek(0)
         return send_file(output, as_attachment=True, download_name=f"{report_type}_report.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-    classes = sorted({student.class_name for student in User.query.filter_by(role="student").all() if student.class_name})
+    classes = ([school_class.name for school_class in SchoolClass.query.order_by(SchoolClass.name).all()]
+               if report_type == "enrollments" else
+               sorted({student.class_name for student in User.query.filter_by(role="student").all() if student.class_name}))
     type_options = "".join(
         f"<option value='{key}'{' selected' if report_type == key else ''}>{label}</option>"
-        for key, label in (("students", "Students"), ("admissions", "Admissions"), ("attendance", "Attendance"), ("cards", "RFID / Cards"))
+        for key, label in (("students", "Students"), ("enrollments", "Academic Enrollment History"), ("admissions", "Admissions"), ("attendance", "Attendance"), ("attendance_audit", "Attendance Scan and Correction Audit"), ("cards", "RFID / Cards"))
     )
     class_options = "".join(
         f"<option value='{escape(value)}'{' selected' if value == class_name else ''}>{escape(value)}</option>"
@@ -212,10 +276,18 @@ def reports():
     download_query["format"] = "xlsx"
     from urllib.parse import urlencode
     download_url = f"/reports?{urlencode(download_query)}"
-    heading = "<h1>Reports</h1><p class='muted'>Generate student, admission, attendance, and RFID card reports.</p><a class='btn btn-outline-success' href='/reports?type=summary'>Office summaries</a>"
+    heading = "<h1>Reports</h1><p class='muted'>Generate enrollment history, student, admission, attendance, and RFID card reports.</p><a class='btn btn-outline-success' href='/reports?type=summary'>Office summaries</a>"
     if current_user.role not in {"master_admin", "head_teacher", "secretary"}:
         heading = "<h1>Reports</h1><p class='muted'>View authorized school reports.</p>"
-    filters = f"""<section class='panel'>{heading}<form method='get' class='row g-3'><div class='col-md-3'><label class='form-label'>Report</label><select class='form-select' name='type'>{type_options}</select></div><div class='col-md-3'><label class='form-label'>Class</label><select class='form-select' name='class_name'><option value=''>All classes</option>{class_options}</select></div><div class='col-md-3'><label class='form-label'>From date</label><input class='form-control' type='date' name='date_from' value='{escape(date_from)}'></div><div class='col-md-3'><label class='form-label'>To date</label><input class='form-control' type='date' name='date_to' value='{escape(date_to)}'></div><div class='col-12'><button class='btn btn-accent'>Generate Report</button></div></form></section>"""
+    year_options = "".join(f"<option value='{year.id}'{' selected' if year.id == academic_year_id else ''}>{escape(year.name)}</option>" for year in AcademicYear.query.order_by(AcademicYear.name.desc()).all())
+    department_options = "".join(f"<option value='{department.id}'{' selected' if department.id == department_id else ''}>{escape(department.name)}</option>" for department in Department.query.order_by(Department.name).all())
+    trade_query = Trade.query
+    if department_id:
+        trade_query = trade_query.filter_by(department_id=department_id)
+    trade_options = "".join(f"<option value='{trade.id}'{' selected' if trade.id == trade_id else ''}>{escape(trade.name)}</option>" for trade in trade_query.order_by(Trade.name).all())
+    hierarchy_filters = f"""<div class='col-md-3'><label class='form-label'>Academic year</label><select class='form-select' name='academic_year_id'><option value=''>All years</option>{year_options}</select></div><div class='col-md-3'><label class='form-label'>Department</label><select class='form-select' name='department_id'><option value=''>All departments</option>{department_options}</select></div><div class='col-md-3'><label class='form-label'>Trade</label><select class='form-select' name='trade_id'><option value=''>All trades</option>{trade_options}</select></div>""" if report_type == "enrollments" else ""
+    date_filters = "" if report_type == "enrollments" else f"""<div class='col-md-3'><label class='form-label'>From date</label><input class='form-control' type='date' name='date_from' value='{escape(date_from)}'></div><div class='col-md-3'><label class='form-label'>To date</label><input class='form-control' type='date' name='date_to' value='{escape(date_to)}'></div>"""
+    filters = f"""<section class='panel'>{heading}<form method='get' class='row g-3'><div class='col-md-3'><label class='form-label'>Report</label><select class='form-select' name='type'>{type_options}</select></div><div class='col-md-3'><label class='form-label'>Class</label><select class='form-select' name='class_name'><option value=''>All classes</option>{class_options}</select></div>{hierarchy_filters}{date_filters}<div class='col-12'><button class='btn btn-accent'>Generate Report</button></div></form></section>"""
     body = filters + f"<section class='panel'><div class='d-flex justify-content-between align-items-center flex-wrap gap-2'><h2>{title} · {len(rows)} records</h2><a class='btn btn-outline-success' href='{escape(download_url)}'>Download Excel</a></div><div class='table-responsive'><table class='table align-middle'><thead><tr>{''.join(f'<th>{escape(header)}</th>' for header in headers)}</tr></thead><tbody>{result_rows or f'<tr><td colspan="{len(headers)}" class="muted">No matching records found.</td></tr>'}</tbody></table></div></section>"
     return page("Reports", body, "master_admin")
 

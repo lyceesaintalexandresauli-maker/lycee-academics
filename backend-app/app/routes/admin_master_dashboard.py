@@ -100,7 +100,8 @@ def render_master_admin_dashboard():
     for days_ago in range(6, -1, -1):
         day = today - datetime.timedelta(days=days_ago)
         day_sum = db.session.query(db.func.coalesce(db.func.sum(FeeTransaction.amount), 0)).filter(
-            FeeTransaction.created_at.like(f"{day.isoformat()}%")
+            FeeTransaction.created_at.like(f"{day.isoformat()}%"),
+            FeeTransaction.reconciliation_status == "confirmed",
         ).scalar()
         amount = float(day_sum or 0)
         finance_labels.append(day.strftime("%a").upper())
@@ -109,7 +110,9 @@ def render_master_admin_dashboard():
         attendance_labels.append(day.strftime("%d %b"))
         attendance_series.append(Attendance.query.filter_by(day=day.isoformat()).count())
 
-    avg_fee = float(db.session.query(db.func.avg(FeeTransaction.amount)).scalar() or 0)
+    avg_fee = float(db.session.query(db.func.avg(FeeTransaction.amount)).filter(
+        FeeTransaction.reconciliation_status == "confirmed"
+    ).scalar() or 0)
     age_labels, age_values, avg_age = _admin_age_buckets(today)
 
     trade_rows = (

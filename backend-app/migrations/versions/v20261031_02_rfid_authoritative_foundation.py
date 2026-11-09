@@ -75,11 +75,5 @@ def upgrade(connection):
                         "VALUES (:uid, :status, :created, 'Migrated from PendingCard queue')"
                     ), {"uid": norm_uid, "status": card_status, "created": p_first or now_str})
 
-        # Ensure default device exists
-        if inspector.has_table("rfid_device"):
-            device_exists = connection.execute(text("SELECT id FROM rfid_device LIMIT 1")).first()
-            if not device_exists:
-                connection.execute(text(
-                    "INSERT INTO rfid_device (device_id, device_name, device_token, location, device_type, is_active, created_at) "
-                    "VALUES ('MAIN_GATE_01', 'Main Campus Gate Reader', 'muhura-gate-token-2026', 'Main Entrance', 'Gate', 1, :now)"
-                ), {"now": now_str})
+        # RFID readers must be provisioned with a per-device secret out of band.
+        # Never seed a reusable device token in a migration.

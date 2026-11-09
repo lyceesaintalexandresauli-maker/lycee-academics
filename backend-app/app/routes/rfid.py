@@ -7,7 +7,7 @@ from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.utils import secure_filename
 from openpyxl import Workbook
 from app.extensions import db
-from app.models import User, Attendance, PendingCard, FeeTransaction, Book, DisciplineCase, SchoolMessage, Grade, TimetableEntry, Setting
+from app.models import User, Attendance, PendingCard, RFIDScanLog, FeeTransaction, Book, DisciplineCase, SchoolMessage, Grade, TimetableEntry, Setting
 from app.utils.constants import *
 from app.utils.decorators import role_required
 from app.utils.helpers import get_setting, set_setting, attendance_for_student
@@ -32,11 +32,29 @@ from app.services.attendance_service import (
 from app.services.room_booking import check_in_student_for_current_meetings
 
 
+def _record_rfid_scan(uid, student, device_id, day, scanned_at, scan_clock,
+                      session_name, status_result, message, is_duplicate=False):
+    """Append one authenticated physical card event to the scan ledger."""
+    db.session.add(RFIDScanLog(
+        card_uid=uid,
+        student_id=student.id if student else None,
+        device_id=device_id,
+        day=day,
+        scanned_at=scanned_at,
+        scan_clock=scan_clock,
+        session_name=session_name,
+        status_result=status_result,
+        is_duplicate=is_duplicate,
+        message=(message or "")[:255] or None,
+        raw_payload=json.dumps({"uid": uid}, separators=(",", ":")),
+    ))
+
+
 def _rfid_device_token_error():
-    """Enforce the configured device token while preserving legacy setups without one."""
+    """Require an explicit server secret before accepting hardware requests."""
     expected_token = str(current_app.config.get("RFID_DEVICE_TOKEN", "") or "")
     if not expected_token:
-        return None
+        return jsonify(status="error", message="RFID device authentication is not configured."), 503
     supplied_token = request.headers.get("X-Device-Token", "")
     if hmac.compare_digest(supplied_token, expected_token):
         return None
@@ -115,6 +133,9 @@ def rfid_login():
         return jsonify(status="error", message="No RFID UID provided."), 400
     if len(uid) > 100:
         return jsonify(status="error", message="RFID UID exceeds the 100-character limit."), 400
+    device_id = request.headers.get("X-Device-Id", "").strip() or None
+    if device_id and (len(device_id) > 64 or not all(32 <= ord(char) <= 126 for char in device_id)):
+        return jsonify(status="error", message="RFID device ID must be printable and at most 64 characters."), 400
 
     now = datetime.datetime.now()
     stamp = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -135,6 +156,9 @@ def rfid_login():
         configured_present_grace = get_present_grace_minutes()
     except ValueError:
         current_app.logger.exception("Invalid saved RFID attendance time setting")
+        _record_rfid_scan(uid, None, device_id, today, scan_stamp, scan_clock,
+                          "unknown", "ConfigurationError", "Attendance time settings are invalid.")
+        db.session.commit()
         return jsonify(
             status="error",
             message="Attendance times or Present grace are invalid. Ask the school administrator to save the time settings again.",
@@ -147,6 +171,9 @@ def rfid_login():
         and late_grace_end_seconds < afternoon_start_minute * 60
         and afternoon_start_minute <= afternoon_end_minute
     ):
+        _record_rfid_scan(uid, None, device_id, today, scan_stamp, scan_clock,
+                          "unknown", "ConfigurationError", "Attendance time windows are inconsistent.")
+        db.session.commit()
         return jsonify(
             status="error",
             message="Attendance times must leave the full 15-minute late period before Afternoon Start.",
@@ -158,29 +185,48 @@ def rfid_login():
 
     student = User.query.filter_by(rfid_uid=uid, role="student").first()
     if student and student.is_active_account is False:
+        message = "This student's account is archived. Contact the school office."
+        _record_rfid_scan(uid, student, device_id, today, scan_stamp, scan_clock,
+                          "unknown", "InactiveStudent", message)
+        db.session.commit()
         return jsonify(
             status="student_inactive",
             student=student.full_name,
             attendance_status="Inactive",
             timestamp=stamp,
-            message="This student's account is archived. Contact the school office.",
+            message=message,
         ), 403
     allowed_class = str(current_app.config.get("RFID_DEVICE_CLASS", "") or "").strip()
     if student and allowed_class and (student.class_name or "").strip().casefold() != allowed_class.casefold():
+        message = "This RFID reader is not authorized for the student's class."
+        _record_rfid_scan(uid, student, device_id, today, scan_stamp, scan_clock,
+                          "unknown", "ClassDenied", message)
+        db.session.commit()
         return jsonify(
             status="class_not_allowed",
-            message="This RFID reader is not authorized for the student's class.",
+            message=message,
         ), 403
     if not student:
         pending = PendingCard.query.filter_by(uid=uid).first()
         if pending and pending.state == "Lost":
+            message = "This card was reported lost and is deactivated. Please contact the school office for a replacement."
+            _record_rfid_scan(uid, None, device_id, today, scan_stamp, scan_clock,
+                              "unknown", "LostCard", message)
+            db.session.commit()
             return jsonify(status="lost_card", uid=uid,
-                           message="This card was reported lost and is deactivated. Please contact the school office for a replacement."), 403
+                           message=message), 403
         if pending and pending.state != "Pending":
+            message = "This card is not eligible for student registration."
+            _record_rfid_scan(uid, None, device_id, today, scan_stamp, scan_clock,
+                              "unknown", "CardNotEligible", message)
+            db.session.commit()
             return jsonify(status="card_not_eligible", uid=uid,
-                           message="This card is not eligible for student registration."), 403
+                           message=message), 403
         if not pending:
             db.session.add(PendingCard(uid=uid, first_seen=stamp, last_seen=scan_stamp))
+            _record_rfid_scan(uid, None, device_id, today, scan_stamp, scan_clock,
+                              "unknown", "PendingRegistration",
+                              "Card UID read and queued for student registration.")
             db.session.commit()
             notify_school_admins(
                 "RFID", "Unrecognized card scan",
@@ -190,6 +236,9 @@ def rfid_login():
             db.session.commit()
         else:
             pending.last_seen = scan_stamp
+            _record_rfid_scan(uid, None, device_id, today, scan_stamp, scan_clock,
+                              "unknown", "PendingRegistration",
+                              "Card UID read and queued for student registration.")
         reconcile_daily_absences(now=now)
         db.session.commit()
         return jsonify(status="pending_registration", uid=uid,
@@ -205,12 +254,18 @@ def rfid_login():
         # Keep any meeting check-in above, but reject this as a school arrival
         # scan once the configured late-arrival grace period has expired.
         reconcile_daily_absences(now=now)
-        db.session.commit()
         late_window_end = late_grace_end_seconds
         late_window_end_text = (
             f"{late_window_end // 3600:02d}:"
             f"{(late_window_end % 3600) // 60:02d}"
         )
+        message = (
+            f"Access denied: the RFID arrival window ended at {late_window_end_text}. "
+            "The 15-minute late-arrival grace period has expired."
+        )
+        _record_rfid_scan(uid, student, device_id, today, scan_stamp, scan_clock,
+                          "morning", "AccessDenied", message)
+        db.session.commit()
         return jsonify(
             status="access_denied",
             student=student.full_name,
@@ -221,10 +276,7 @@ def rfid_login():
             late_window_ends=late_window_end_text,
             present_grace_minutes=configured_present_grace,
             meeting_checkins=meeting_checkins,
-            message=(
-                f"Access denied: the RFID arrival window ended at {late_window_end_text}. "
-                "The 15-minute late-arrival grace period has expired."
-            ),
+            message=message,
         ), 403
 
     if morning_start_minute * 60 <= current_seconds < afternoon_start_minute * 60:
@@ -271,6 +323,10 @@ def rfid_login():
             notify_class_attendance(student, row.status, today, notification_time)
         if current_seconds > late_grace_end_seconds:
             reconcile_daily_absences(now=now, exclude_student_ids={student.id})
+        message = f"{student.full_name}: {row.status} recorded at {stamp}."
+        _record_rfid_scan(uid, student, device_id, today, scan_stamp,
+                          scan_clock, "morning", row.status, message,
+                          is_duplicate=not recorded_arrival)
         db.session.commit()
         return jsonify(status="success", student=student.full_name, attendance_status=row.status,
                        class_name=student.class_name or "Unassigned",
@@ -281,7 +337,7 @@ def rfid_login():
                        afternoon_start=afternoon_start,
                        afternoon_end=afternoon_end,
                        meeting_checkins=meeting_checkins, timestamp=stamp,
-                       message=f"{student.full_name}: {row.status} recorded at {stamp}.")
+                       message=message)
 
     if in_afternoon_window:
         new_afternoon_scan = not row or not row.afternoon_time
@@ -302,6 +358,10 @@ def rfid_login():
         if new_afternoon_scan:
             notify_class_attendance(student, row.status, today, stamp, session="afternoon")
         reconcile_daily_absences(now=now, exclude_student_ids={student.id})
+        message = f"{student.full_name}: Afternoon attendance recorded at {stamp}."
+        _record_rfid_scan(uid, student, device_id, today, scan_stamp,
+                          scan_clock, "afternoon", "AfternoonScan", message,
+                          is_duplicate=not new_afternoon_scan)
         db.session.commit()
         return jsonify(status="success", student=student.full_name, attendance_status=row.status,
                        class_name=student.class_name or "Unassigned",
@@ -312,17 +372,24 @@ def rfid_login():
                        afternoon_start=afternoon_start,
                        afternoon_end=afternoon_end,
                        meeting_checkins=meeting_checkins, timestamp=stamp,
-                       message=f"{student.full_name}: Afternoon attendance recorded at {stamp}.")
+                       message=message)
 
     reconcile_daily_absences(now=now)
-    db.session.commit()
     class_summary = student_class_attendance_summary(student, today)
     if meeting_checkins:
+        message = f"{student.full_name}: checked in to {meeting_checkins} meeting(s) by RFID."
+        _record_rfid_scan(uid, student, device_id, today, scan_stamp,
+                          scan_clock, "outside", "MeetingCheckin", message)
+        db.session.commit()
         return jsonify(status="meeting_checkin", student=student.full_name,
                        class_name=student.class_name or "Unassigned",
                        class_summary=class_summary,
                        meeting_checkins=meeting_checkins, timestamp=stamp,
-                       message=f"{student.full_name}: checked in to {meeting_checkins} meeting(s) by RFID.")
+                       message=message)
+    message = f"Scan at server time {clock} is outside the allowed windows. Morning: {morning_start}-{afternoon_start}; afternoon: {afternoon_start}-{afternoon_end}."
+    _record_rfid_scan(uid, student, device_id, today, scan_stamp,
+                      scan_clock, "outside", "OutsideWindow", message)
+    db.session.commit()
     return jsonify(status="outside_window", student=student.full_name,
                    class_name=student.class_name or "Unassigned",
                    class_summary=class_summary,
@@ -330,7 +397,7 @@ def rfid_login():
                    late_after=late_after, present_grace_minutes=configured_present_grace,
                    afternoon_start=afternoon_start,
                    afternoon_end=afternoon_end,
-                   message=f"Scan at server time {clock} is outside the allowed windows. Morning: {morning_start}-{afternoon_start}; afternoon: {afternoon_start}-{afternoon_end}."), 403
+                   message=message), 403
 
 def card_lookup():
     uid = request.args.get("uid", "").strip().replace(" ", "").upper()
