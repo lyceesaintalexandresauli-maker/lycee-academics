@@ -2,68 +2,70 @@
 
 ## Project shape
 
-This project is a Flask application with a React/Vite frontend layer that is being introduced incrementally. The root entrypoint is [run.py](run.py), which loads the backend application from the `backend-app/` package. The repo is organized around the existing Flask app, not a static frontend-only build.
+This repo is a Flask-first school management system. The backend under [backend-app](backend-app) is the source of truth for authentication, authorization, database access, and school-scoped permissions. React/Vite is being introduced incrementally and must never bypass server-side enforcement.
 
 Key references:
-- [README.md](README.md) for setup and workspace expectations
-- [docs/react-migration-plan.md](docs/react-migration-plan.md) for the frontend migration boundaries
-- [docs/meetings-api.md](docs/meetings-api.md) for API contract expectations
-- [docs/meeting-schema.md](docs/meeting-schema.md) for database/schema migration behavior
-- [MEETING_PANEL_IMPLEMENTATION.md](MEETING_PANEL_IMPLEMENTATION.md) for workflow-specific conventions
+- [README.md](README.md) for setup and deployment expectations
+- [docs/react-migration-plan.md](docs/react-migration-plan.md) for frontend migration boundaries
+- [docs/meetings-api.md](docs/meetings-api.md) for meeting API contracts
+- [docs/meeting-schema.md](docs/meeting-schema.md) for meeting database and migration expectations
+- [MEETING_PANEL_IMPLEMENTATION.md](MEETING_PANEL_IMPLEMENTATION.md) for workflow-specific constraints
 
-When changing application logic, prefer the existing Flask patterns and keep the server-side authorization model intact. The app uses role checks and school-scoped access control in the backend; do not move critical permissions into React-only code.
+## Required agent behaviors
+
+- Keep route handlers thin and focused on request validation, auth checks, and response shaping.
+- Move reusable business logic into services or utilities instead of embedding it in routes.
+- Preserve role checks, school scoping, and guardian access patterns from the backend.
+- Treat the backend as the authority for permission enforcement even when React screens are present.
+- Prefer focused tests in [backend-app/tests](backend-app/tests) for route, access, and data-boundary changes.
+- Follow the existing Python conventions: four-space indentation, `snake_case`, and `PascalCase` for classes.
 
 ## Local setup
-
-Use a virtual environment and install dependencies before running the app locally:
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+python run.py
+```
+
+If the React frontend exists, build it before running the app:
+
+```powershell
 npm.cmd install --prefix react-frontend
 npm.cmd run build --prefix react-frontend
 python run.py
 ```
 
-If the frontend package is not present or not yet built, fall back to the existing backend-only routes and keep the migration plan in [docs/react-migration-plan.md](docs/react-migration-plan.md) in mind.
+If the frontend package is absent, fall back to the backend-only routes and keep the staged migration plan in [docs/react-migration-plan.md](docs/react-migration-plan.md) in mind.
 
-## Working conventions
+## Database and migration rules
 
-- Keep route handlers focused on request validation and response shaping; move reusable business rules into services or utilities.
-- Preserve the existing role-based access patterns and school/guardian scope checks.
-- Use SQLAlchemy models and Flask migration patterns rather than editing a live database directly.
-- Keep database changes idempotent and migration-friendly; if a schema change is necessary, add or update migration files instead of manual DB edits.
-- Prefer small, focused tests under `backend-app/tests/` when changing routes, permissions, or data boundaries.
-- Follow the existing Python conventions: four-space indentation, `snake_case` for functions/variables, and `PascalCase` for classes.
+- Use SQLAlchemy models and Flask migration patterns; do not edit a live database directly.
+- If a schema change is necessary, add or update migration files under [backend-app/migrations/versions](backend-app/migrations/versions).
+- Before changing meeting-related schema or endpoints, read [docs/meeting-schema.md](docs/meeting-schema.md) and [docs/meetings-api.md](docs/meetings-api.md) first.
+- Keep schema changes idempotent and compatible with the app’s startup migration flow.
 
-## Testing
+## Validation
 
-Run the test suite with:
+Run the backend test suite:
 
 ```powershell
 python -m pytest
 ```
 
-If you change frontend behavior, validate the build with:
+If frontend behavior changes, validate the frontend build:
 
 ```powershell
 npm.cmd run build --prefix react-frontend
 ```
 
-## Security and config
+## Security and configuration guardrails
 
-- Keep secrets and local environment values in `.env`; use `.env.example` as the documented template.
-- Do not commit credentials, local sqlite files, or virtual environments.
-- Treat the bootstrap admin credentials in the documentation as local development values only and rotate or replace them immediately in real deployments.
-
-## Useful guardrails for agents
-
-- Do not rewrite architecture boundaries just to make a small fix; follow the existing Flask + server-side auth model.
-- Before making schema or migration changes, inspect [docs/meeting-schema.md](docs/meeting-schema.md) and the migration history to maintain compatibility.
-- For meeting-related work, consult [docs/meetings-api.md](docs/meetings-api.md) and [docs/meeting-security-and-deployment.md](docs/meeting-security-and-deployment.md) before changing endpoints or security assumptions.
-- Keep changes aligned with the migration approach in [docs/react-migration-plan.md](docs/react-migration-plan.md): incremental front-end adoption without breaking the backend flows.
+- Keep secrets and local config values in `.env`; do not commit credentials or local SQLite files.
+- Treat bootstrap admin credentials as local development values only.
+- Do not broaden access, loosen scoping, or bypass backend permission checks to make a small change simpler.
 
 ## Commit and PR expectations
 
-Use concise, imperative commit subjects such as "Fix teacher class assignment scope". Pull requests should explain the user-visible change, call out any migration/configuration impact, list verification performed, and include screenshots for UI changes when relevant.
+Use concise, imperative commit subjects such as “Fix teacher class assignment scope.” Pull requests should describe the user-visible change, note any config or migration impact, and include verification performed.
